@@ -1,6 +1,6 @@
 # Layrgo
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/samznd/layrgo.svg)](https://pkg.go.dev/github.com/samznd/layrgo/cmd/layrgo)
+[![Go Reference](https://pkg.go.dev/badge/github.com/samznd/layrgo.svg)](https://pkg.go.dev/github.com/samznd/layrgo)
 [![GitHub release](https://img.shields.io/github/v/release/samznd/layrgo.svg)](https://github.com/samznd/layrgo/releases)
 [![CI](https://github.com/samznd/layrgo/actions/workflows/ci.yml/badge.svg)](https://github.com/samznd/layrgo/actions/workflows/ci.yml)
 
@@ -10,12 +10,12 @@ Layrgo is a CLI that generates a complete, compilable Go web project — clean a
 
 ## Why Layrgo?
 
-| Without Layrgo | With Layrgo |
-|----------------|-------------|
-| Manually wire handlers, services, repos | Pre-wired `handler → service → repository` |
-| Pick framework + DB + ORM from scratch | Choose your stack interactively or via flags |
-| Write Dockerfile and compose yourself | Docker + compose generated per database |
-| Hope the layout is idiomatic | Standard Go project layout out of the box |
+| Without Layrgo                          | With Layrgo                                  |
+| --------------------------------------- | -------------------------------------------- |
+| Manually wire handlers, services, repos | Pre-wired `handler → service → repository`   |
+| Pick framework + DB + ORM from scratch  | Choose your stack interactively or via flags |
+| Write Dockerfile and compose yourself   | Docker + compose generated per database      |
+| Hope the layout is idiomatic            | Standard Go project layout out of the box    |
 
 **Supported stacks:** Fiber · Gin · Echo · Chi · Iris × Postgres · MySQL · SQLite × GORM · XORM · Ent · raw `database/sql`
 
@@ -105,12 +105,12 @@ layrgo --help
 
 ### `init` flags
 
-| Flag | Description |
-|------|-------------|
+| Flag          | Description                    |
+| ------------- | ------------------------------ |
 | `--framework` | Fiber, Gin, Echo, Chi, or Iris |
-| `--database` | Postgres, MySQL, or SQLite |
-| `--orm` | GORM, XORM, or Ent |
-| `--no-orm` | Use `database/sql` instead |
+| `--database`  | Postgres, MySQL, or SQLite     |
+| `--orm`       | GORM, XORM, or Ent             |
+| `--no-orm`    | Use `database/sql` instead     |
 
 ## Layrgo repository layout
 
