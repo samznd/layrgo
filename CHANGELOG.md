@@ -3,6 +3,30 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
+## Unreleased
+
+### Fixed
+- **`layrgo version` reports the real version when installed with `go install`.**
+  The version, commit and date were supplied exclusively by `-ldflags -X`, which only
+  the `Makefile` and GoReleaser pass, so a binary from
+  `go install github.com/samznd/layrgo/cmd/layrgo@v1.1.0` — the install method the
+  README documents — printed `layrgo dev (commit: none, built: unknown)`. The values
+  now fall back to `runtime/debug.ReadBuildInfo()`: the module version for a
+  `go install <module>@<version>` build, and the `vcs.revision` / `vcs.time` build
+  settings for a build from a working tree. Linker-provided values still win when
+  present, so `make build` and release archives are unaffected.
+
+### Changed
+- Version output is normalized to the `v`-prefixed form. GoReleaser stamps
+  `{{ .Version }}`, which has no leading `v`, so release binaries reported `layrgo 1.1.0`
+  while module versions and git tags are written `v1.1.0`; both paths now agree.
+- The `(commit: …, built: …)` detail is omitted when neither value is known, instead of
+  printing the `none` / `unknown` placeholders. A `go install <module>@<version>` build
+  resolves a real version but records no VCS metadata, because a module zip contains no
+  repository.
+- A build from a modified working tree marks its commit `-dirty`, matching what
+  `git describe --dirty` already reported on the `Makefile` path.
+
 ## v1.1.0 — 2026-11-09
 
 Correctness release plus an internal restructure. Fixes three bugs in v1.0.0 that
