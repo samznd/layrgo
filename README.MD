@@ -40,6 +40,25 @@ curl http://localhost:3000/api/v1/message
 # {"message":"data from repository"}
 ```
 
+### Dependency-free routing (`net/http`)
+
+`--framework stdlib` generates a project that routes on the standard library, using
+the `http.ServeMux` method patterns added in Go 1.22 — so no router is pulled in:
+
+```bash
+layrgo init myapi --framework stdlib --database SQLite --no-orm
+
+cd myapi
+cat go.mod        # godotenv + the SQLite driver. No router.
+go run ./cmd
+
+curl      http://localhost:3000/api/v1/message   # 200 {"message":"data from repository"}
+curl -X POST http://localhost:3000/api/v1/message # 405: the GET pattern routes by method
+```
+
+The generated `main.go` uses an explicit `http.Server` with read, write, header and
+idle timeouts, rather than `http.ListenAndServe`, which sets none.
+
 ### Interactive example
 
 ```bash
@@ -60,7 +79,10 @@ Next steps:
 
 ## Installation
 
-**Requirements:** Go 1.23+
+**Requirements:** Go 1.23+ to install the CLI. Generated projects target your local
+Go version; the `stdlib` framework needs Go 1.22+ for `net/http` routing (layrgo
+refuses the combination on older toolchains rather than generating a project whose
+routes silently 404).
 
 ```bash
 go install github.com/samznd/layrgo/cmd/layrgo@latest
@@ -139,12 +161,12 @@ make vet
 
 ## Releases
 
-Versioning follows [Semantic Versioning](https://semver.org/) with `v`-prefixed git tags (`v1.0.0`, `v1.1.0`, …).
+Versioning follows [Semantic Versioning](https://semver.org/) with `v`-prefixed git tags (`v1.0.0`, `v1.1.0`, `v1.2.0`, …).
 
 ```bash
 # tag a release (triggers GoReleaser via GitHub Actions)
-git tag -a v1.0.0 -m "v1.0.0"
-git push origin v1.0.0
+git tag -a v1.2.1 -m "v1.2.1"
+git push origin v1.2.1
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.

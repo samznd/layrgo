@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
-## Unreleased
+## v1.2.1 — 2026-11-09
 
 ### Fixed
 - **`--framework` help text now lists every supported framework.** v1.2.0 added
@@ -13,6 +13,7 @@ This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.P
   worked. All three now read one `cli.Frameworks` slice, and tests assert the help
   text lists every entry and that every entry has renderable templates behind it.
 
+## v1.2.0 — 2026-11-09
 
 ### Added
 - **`net/http` as a sixth framework, selected with `--framework stdlib`.** Generated
