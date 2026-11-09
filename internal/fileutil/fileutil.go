@@ -1,35 +1,23 @@
+// Package fileutil provides small filesystem helpers for writing generated files.
 package fileutil
 
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 // CreateFile writes content to path, creating parent directories as needed.
+//
+// It deliberately reports nothing to stdout: callers decide how (and whether) to
+// surface progress, which keeps this usable from tests and from quiet code paths.
 func CreateFile(filePath, content string) error {
-	if err := os.MkdirAll(dirOf(filePath), 0o755); err != nil {
-		return fmt.Errorf("create parent dir: %w", err)
+	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
+		return fmt.Errorf("create parent dir for %s: %w", filePath, err)
 	}
 
-	file, err := os.Create(filePath)
-	if err != nil {
-		return err
+	if err := os.WriteFile(filePath, []byte(content), 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", filePath, err)
 	}
-	defer file.Close()
-
-	if _, err = file.WriteString(content); err != nil {
-		return err
-	}
-
-	fmt.Println("✅ Created file:", filePath)
 	return nil
-}
-
-func dirOf(path string) string {
-	for i := len(path) - 1; i >= 0; i-- {
-		if path[i] == '/' || path[i] == os.PathSeparator {
-			return path[:i]
-		}
-	}
-	return "."
 }

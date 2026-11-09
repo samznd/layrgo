@@ -91,7 +91,9 @@ your-project/
 ├── pkg/utils/               # Env loader
 ├── Dockerfile
 ├── docker-compose.yml
-└── .env
+├── .gitignore
+├── .env.example
+└── .env                     # gitignored; local overrides
 ```
 
 ## Commands
@@ -111,6 +113,7 @@ layrgo --help
 | `--database`  | Postgres, MySQL, or SQLite     |
 | `--orm`       | GORM, XORM, or Ent             |
 | `--no-orm`    | Use `database/sql` instead     |
+| `--force`     | Scaffold into a non-empty directory |
 
 ## Layrgo repository layout
 

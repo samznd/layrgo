@@ -1,0 +1,34 @@
+package main
+
+import (
+	"log"
+
+	"github.com/kataras/iris/v12"
+	"{{.Module}}/config"
+	"{{.Module}}/internal/handlers"
+	"{{.Module}}/internal/repositories"
+	"{{.Module}}/internal/routes"
+	"{{.Module}}/internal/services"
+	"{{.Module}}/pkg/utils"
+)
+
+func main() {
+	if err := utils.InitialEnv(); err != nil {
+		log.Fatal(err)
+	}
+	if err := config.Connect(); err != nil {
+		log.Fatalf("connect to database: %v", err)
+	}
+	defer config.Close()
+
+	app := iris.New()
+
+{{template "di" .}}
+
+	routes.SetupRoutes(app, handler)
+
+	log.Println("🚀 Iris server is running on http://localhost:3000")
+	if err := app.Listen(":3000"); err != nil {
+		log.Fatal(err)
+	}
+}

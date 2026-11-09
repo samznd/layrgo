@@ -1,0 +1,26 @@
+package handlers
+
+import (
+	"{{.Module}}/internal/services"
+
+	"github.com/kataras/iris/v12"
+)
+
+type Handler struct {
+	service services.Service
+}
+
+func NewHandler(s services.Service) *Handler {
+	return &Handler{service: s}
+}
+
+func (h *Handler) Get(ctx iris.Context) {
+	message, err := h.service.GetMessage(ctx.Request().Context())
+	if err != nil {
+		ctx.StopWithJSON(iris.StatusInternalServerError, iris.Map{"error": "internal server error"})
+		return
+	}
+	if err := ctx.JSON(iris.Map{"message": message}); err != nil {
+		return
+	}
+}

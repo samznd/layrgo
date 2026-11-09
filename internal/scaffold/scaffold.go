@@ -2,6 +2,8 @@ package scaffold
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/samznd/layrgo/internal/fileutil"
@@ -14,8 +16,19 @@ var projectDirectories = []string{
 	"internal/handlers", "internal/routes", "pkg/utils", "scripts",
 }
 
-// Scaffold generates a complete project at cfg.ProjectPath.
+// Scaffold generates a complete project at cfg.ProjectPath and installs its
+// dependencies.
 func Scaffold(cfg Config) error {
+	if err := WriteFiles(cfg); err != nil {
+		return err
+	}
+	return installDependencies(cfg)
+}
+
+// WriteFiles generates the project's files and directories without touching the
+// network. Separated from Scaffold so tests can cover every stack combination
+// without running "go get" for each one.
+func WriteFiles(cfg Config) error {
 	if cfg.ORM == "" {
 		cfg.ORM = "none"
 	}
@@ -24,42 +37,53 @@ func Scaffold(cfg Config) error {
 	}
 
 	for _, dir := range projectDirectories {
-		fullPath := joinPath(cfg.ProjectPath, dir)
-		if err := mkdirAll(fullPath); err != nil {
+		fullPath := filepath.Join(cfg.ProjectPath, dir)
+		if err := os.MkdirAll(fullPath, 0o755); err != nil {
 			return fmt.Errorf("create directory %s: %w", fullPath, err)
 		}
 	}
 
-	databaseContent := databaseFile(cfg.Database, cfg.ORM)
-	if databaseContent == "" {
-		return fmt.Errorf("invalid database configuration: database=%s orm=%s", cfg.Database, cfg.ORM)
-	}
-
-	files := map[string]string{
-		joinPath(cfg.ProjectPath, "cmd", "main.go"):            mainFile(cfg),
-		joinPath(cfg.ProjectPath, "config", "database.go"):     databaseContent,
-		joinPath(cfg.ProjectPath, ".env"):                      envFile(cfg.Database),
-		joinPath(cfg.ProjectPath, "pkg/utils", "env_utils.go"): utilsFile(),
-		joinPath(cfg.ProjectPath, "Dockerfile"):                dockerfile(),
-		joinPath(cfg.ProjectPath, "docker-compose.yml"):        dockerComposeFile(cfg.Database),
-	}
-
-	for path, content := range files {
-		if err := fileutil.CreateFile(path, content); err != nil {
-			return fmt.Errorf("create %s: %w", path, err)
-		}
-	}
-
-	if err := templates.WriteLayers(templates.LayerConfig{
-		ProjectPath: cfg.ProjectPath,
-		ProjectName: cfg.ProjectName,
-		Framework:   cfg.Framework,
-		ORM:         cfg.ORM,
-	}); err != nil {
+	databaseContent, err := templates.DatabaseFile(cfg.Database, cfg.ORM)
+	if err != nil {
 		return err
 	}
 
-	return installDependencies(cfg)
+	mainContent, err := templates.MainFile(cfg.ProjectName, cfg.Framework)
+	if err != nil {
+		return err
+	}
+
+	// Ordered slice rather than a map: generation order is then deterministic,
+	// so progress output and any failure are reproducible run to run.
+	files := []struct {
+		rel     string
+		content string
+	}{
+		{filepath.Join("cmd", "main.go"), mainContent},
+		{filepath.Join("config", "database.go"), databaseContent},
+		{filepath.Join("pkg", "utils", "env_utils.go"), utilsFile()},
+		{".env", envFile(cfg.Database)},
+		{".env.example", envFile(cfg.Database)},
+		{".gitignore", gitignoreFile()},
+		{"Dockerfile", dockerfile()},
+		{"docker-compose.yml", dockerComposeFile(cfg.Database)},
+	}
+
+	for _, f := range files {
+		path := filepath.Join(cfg.ProjectPath, f.rel)
+		if err := fileutil.CreateFile(path, f.content); err != nil {
+			return fmt.Errorf("create %s: %w", f.rel, err)
+		}
+		logCreated(f.rel)
+	}
+
+	return templates.WriteLayers(templates.LayerConfig{
+		ProjectPath:   cfg.ProjectPath,
+		ProjectName:   cfg.ProjectName,
+		Framework:     cfg.Framework,
+		ORM:           cfg.ORM,
+		OnFileCreated: logCreated,
+	})
 }
 
 func validateConfig(cfg Config) error {
@@ -70,188 +94,6 @@ func validateConfig(cfg Config) error {
 		return fmt.Errorf("framework and database are required")
 	}
 	return nil
-}
-
-func diBlock() string {
-	return `	repo := repositories.NewRepository(config.DB)
-	service := services.NewService(repo)
-	handler := handlers.NewHandler(service)`
-}
-
-func mainFile(cfg Config) string {
-	mod := cfg.ProjectName
-	di := diBlock()
-
-	switch strings.ToLower(cfg.Framework) {
-	case "fiber":
-		return fmt.Sprintf(`package main
-
-import (
-	"log"
-
-	"github.com/gofiber/fiber/v3"
-	"%s/config"
-	"%s/internal/handlers"
-	"%s/internal/repositories"
-	"%s/internal/routes"
-	"%s/internal/services"
-	"%s/pkg/utils"
-)
-
-func main() {
-	if err := utils.InitialEnv(); err != nil {
-		log.Fatal(err)
-	}
-	config.Connect()
-
-	app := fiber.New()
-
-%s
-
-	api := app.Group("/api/v1")
-	routes.SetupRoutes(api, handler)
-
-	log.Println("🚀 Fiber server is running on http://localhost:3000")
-	if err := app.Listen(":3000"); err != nil {
-		log.Fatal(err)
-	}
-}`, mod, mod, mod, mod, mod, mod, di)
-	case "gin":
-		return fmt.Sprintf(`package main
-
-import (
-	"log"
-
-	"github.com/gin-gonic/gin"
-	"%s/config"
-	"%s/internal/handlers"
-	"%s/internal/repositories"
-	"%s/internal/routes"
-	"%s/internal/services"
-	"%s/pkg/utils"
-)
-
-func main() {
-	if err := utils.InitialEnv(); err != nil {
-		log.Fatal(err)
-	}
-	config.Connect()
-
-	r := gin.Default()
-
-%s
-
-	api := r.Group("/api/v1")
-	routes.SetupRoutes(api, handler)
-
-	log.Println("🚀 Gin server is running on http://localhost:3000")
-	if err := r.Run(":3000"); err != nil {
-		log.Fatal(err)
-	}
-}`, mod, mod, mod, mod, mod, mod, di)
-	case "echo":
-		return fmt.Sprintf(`package main
-
-import (
-	"log"
-
-	"github.com/labstack/echo/v4"
-	"%s/config"
-	"%s/internal/handlers"
-	"%s/internal/repositories"
-	"%s/internal/routes"
-	"%s/internal/services"
-	"%s/pkg/utils"
-)
-
-func main() {
-	if err := utils.InitialEnv(); err != nil {
-		log.Fatal(err)
-	}
-	config.Connect()
-
-	e := echo.New()
-
-%s
-
-	api := e.Group("/api/v1")
-	routes.SetupRoutes(api, handler)
-
-	log.Println("🚀 Echo server is running on http://localhost:3000")
-	if err := e.Start(":3000"); err != nil {
-		log.Fatal(err)
-	}
-}`, mod, mod, mod, mod, mod, mod, di)
-	case "chi":
-		return fmt.Sprintf(`package main
-
-import (
-	"log"
-	"net/http"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"%s/config"
-	"%s/internal/handlers"
-	"%s/internal/repositories"
-	"%s/internal/routes"
-	"%s/internal/services"
-	"%s/pkg/utils"
-)
-
-func main() {
-	if err := utils.InitialEnv(); err != nil {
-		log.Fatal(err)
-	}
-	config.Connect()
-
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-
-%s
-
-	routes.SetupRoutes(r, handler)
-
-	log.Println("🚀 Chi server is running on http://localhost:3000")
-	if err := http.ListenAndServe(":3000", r); err != nil {
-		log.Fatal(err)
-	}
-}`, mod, mod, mod, mod, mod, mod, di)
-	case "iris":
-		return fmt.Sprintf(`package main
-
-import (
-	"log"
-
-	"github.com/kataras/iris/v12"
-	"%s/config"
-	"%s/internal/handlers"
-	"%s/internal/repositories"
-	"%s/internal/routes"
-	"%s/internal/services"
-	"%s/pkg/utils"
-)
-
-func main() {
-	if err := utils.InitialEnv(); err != nil {
-		log.Fatal(err)
-	}
-	config.Connect()
-
-	app := iris.New()
-
-%s
-
-	routes.SetupRoutes(app, handler)
-
-	log.Println("🚀 Iris server is running on http://localhost:3000")
-	if err := app.Listen(":3000"); err != nil {
-		log.Fatal(err)
-	}
-}`, mod, mod, mod, mod, mod, mod, di)
-	default:
-		return ""
-	}
 }
 
 func envFile(database string) string {
@@ -277,17 +119,38 @@ func utilsFile() string {
 	return `package utils
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 
 	"github.com/joho/godotenv"
 )
 
+// InitialEnv loads .env for local development. A missing .env is not an error:
+// in Docker and other deployments configuration arrives as real environment
+// variables, which already take precedence over the file.
 func InitialEnv() error {
 	if err := godotenv.Load(); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
 		return fmt.Errorf("load .env file: %w", err)
 	}
 	return nil
 }`
+}
+
+func gitignoreFile() string {
+	return `# Local environment (contains credentials) - commit .env.example instead
+.env
+
+# Build output
+/app
+/bin/
+
+# SQLite databases
+*.db
+`
 }
 
 func dockerfile() string {
@@ -317,8 +180,8 @@ func dockerComposeFile(database string) string {
 		dbPort    string
 	)
 
-	switch database {
-	case "MySQL":
+	switch strings.ToLower(database) {
+	case "mysql":
 		dbPort = "3306"
 		dbService = `
   db:
@@ -333,7 +196,7 @@ func dockerComposeFile(database string) string {
     volumes:
       - db-data:/var/lib/mysql
 `
-	case "SQLite":
+	case "sqlite":
 		dbPort = ""
 		dbService = `
   db:
@@ -357,10 +220,10 @@ func dockerComposeFile(database string) string {
 `
 	}
 
-	envBlock := fmt.Sprintf(`      - DB_HOST=db
+	envBlock := `      - DB_HOST=db
       - DB_USER=user
       - DB_PASSWORD=password
-      - DB_NAME=mydb`)
+      - DB_NAME=mydb`
 	if dbPort != "" {
 		envBlock += fmt.Sprintf("\n      - DB_PORT=%s", dbPort)
 	}

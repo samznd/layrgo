@@ -1,0 +1,29 @@
+package repositories
+
+// Ent schema code is project-specific: run 'ent init' to generate it, then swap
+// this sql.DB-backed implementation for the generated Ent client.
+
+import (
+	"context"
+	"database/sql"
+)
+
+type Repository interface {
+	GetMessage(ctx context.Context) (string, error)
+}
+
+type repoImpl struct {
+	db *sql.DB
+}
+
+func NewRepository(db *sql.DB) Repository {
+	return &repoImpl{db: db}
+}
+
+func (r *repoImpl) GetMessage(ctx context.Context) (string, error) {
+	var message string
+	if err := r.db.QueryRowContext(ctx, "SELECT 'data from repository'").Scan(&message); err != nil {
+		return "", err
+	}
+	return message, nil
+}

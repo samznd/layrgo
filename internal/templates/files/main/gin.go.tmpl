@@ -1,0 +1,35 @@
+package main
+
+import (
+	"log"
+
+	"github.com/gin-gonic/gin"
+	"{{.Module}}/config"
+	"{{.Module}}/internal/handlers"
+	"{{.Module}}/internal/repositories"
+	"{{.Module}}/internal/routes"
+	"{{.Module}}/internal/services"
+	"{{.Module}}/pkg/utils"
+)
+
+func main() {
+	if err := utils.InitialEnv(); err != nil {
+		log.Fatal(err)
+	}
+	if err := config.Connect(); err != nil {
+		log.Fatalf("connect to database: %v", err)
+	}
+	defer config.Close()
+
+	r := gin.Default()
+
+{{template "di" .}}
+
+	api := r.Group("/api/v1")
+	routes.SetupRoutes(api, handler)
+
+	log.Println("🚀 Gin server is running on http://localhost:3000")
+	if err := r.Run(":3000"); err != nil {
+		log.Fatal(err)
+	}
+}

@@ -7,51 +7,175 @@ import (
 	"github.com/samznd/layrgo/internal/templates"
 )
 
-func TestRepositoryTemplate_RawSQL(t *testing.T) {
+func TestRepositoryFile_RawSQL(t *testing.T) {
 	t.Parallel()
-	content := templates.RepositoryTemplate("none")
-	if !strings.Contains(content, "func NewRepository(db *sql.DB)") {
-		t.Error("expected sql.DB constructor")
+
+	content, err := templates.RepositoryFile("myapp", "none")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if !strings.Contains(content, "GetMessage() (string, error)") {
-		t.Error("expected consistent return signature")
+	for _, want := range []string{
+		"func NewRepository(db *sql.DB)",
+		"GetMessage(ctx context.Context) (string, error)",
+		"QueryRowContext(ctx,",
+	} {
+		if !strings.Contains(content, want) {
+			t.Errorf("missing %q in:\n%s", want, content)
+		}
 	}
 }
 
-func TestRepositoryTemplate_XORM_ErrorPath(t *testing.T) {
+// Previously this test could never fail. It now asserts the specific behavior:
+// the xorm repository must check the row count and propagate both error paths.
+func TestRepositoryFile_XORM_ErrorPaths(t *testing.T) {
 	t.Parallel()
-	content := templates.RepositoryTemplate("xorm")
-	if strings.Contains(content, `return ""`) && !strings.Contains(content, `return "", err`) {
-		t.Error("xorm error path should return error")
+
+	content, err := templates.RepositoryFile("myapp", "xorm")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Count(content, `return "", err`) < 1 {
+		t.Error("xorm repository should propagate the query error")
+	}
+	if !strings.Contains(content, "len(rows) == 0") {
+		t.Error("xorm repository should guard against an empty result set")
+	}
+	if !strings.Contains(content, `return "", fmt.Errorf("no rows returned")`) {
+		t.Error("xorm repository should return an error for an empty result set")
 	}
 }
 
-func TestRoutesTemplate_FiberNoDoublePrefix(t *testing.T) {
+func TestRepositoryFile_RejectsUnknownORM(t *testing.T) {
 	t.Parallel()
-	content := templates.RoutesTemplate("myapp", "fiber")
-	if strings.Contains(content, `Group("/api")`) {
-		t.Error("fiber routes should not add extra /api prefix")
+
+	if _, err := templates.RepositoryFile("myapp", "sqlboiler"); err == nil {
+		t.Fatal("expected an error for an unsupported ORM")
 	}
 }
 
-func TestRoutesTemplate_EchoAcceptsGroup(t *testing.T) {
+func TestRoutesFile_NoDoubleAPIPrefix(t *testing.T) {
 	t.Parallel()
-	content := templates.RoutesTemplate("myapp", "echo")
+
+	// Frameworks whose main.go already groups under /api/v1 must not repeat it.
+	for _, fw := range []string{"fiber", "gin", "echo"} {
+		content, err := templates.RoutesFile("myapp", fw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(content, "/api/v1") {
+			t.Errorf("%s routes should not re-add the /api/v1 prefix:\n%s", fw, content)
+		}
+	}
+
+	// Chi and Iris receive the bare router, so they own the prefix.
+	for _, fw := range []string{"chi", "iris"} {
+		content, err := templates.RoutesFile("myapp", fw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(content, "/api/v1") {
+			t.Errorf("%s routes should declare the /api/v1 prefix:\n%s", fw, content)
+		}
+	}
+}
+
+func TestRoutesFile_EchoAcceptsGroup(t *testing.T) {
+	t.Parallel()
+
+	content, err := templates.RoutesFile("myapp", "echo")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !strings.Contains(content, "func SetupRoutes(api *echo.Group") {
 		t.Error("echo routes should accept *echo.Group")
 	}
 }
 
-func TestHandlerTemplate_AllFrameworks(t *testing.T) {
+func TestHandlerFile_AllFrameworks(t *testing.T) {
 	t.Parallel()
-	frameworks := []string{"fiber", "gin", "echo", "chi", "iris"}
-	for _, fw := range frameworks {
-		content := templates.HandlerTemplate("myapp", fw)
-		if content == "" {
-			t.Errorf("empty handler template for %s", fw)
+
+	for _, fw := range []string{"fiber", "gin", "echo", "chi", "iris"} {
+		content, err := templates.HandlerFile("myapp", fw)
+		if err != nil {
+			t.Fatalf("%s: %v", fw, err)
 		}
 		if !strings.Contains(content, "NewHandler(s services.Service)") {
 			t.Errorf("%s handler missing NewHandler constructor", fw)
 		}
+		// Handlers must not leak internal error detail to clients.
+		if strings.Contains(content, "err.Error()") {
+			t.Errorf("%s handler should not echo raw error text to the client", fw)
+		}
+		if !strings.Contains(content, "GetMessage(") {
+			t.Errorf("%s handler should call the service", fw)
+		}
+	}
+}
+
+func TestHandlerFile_RejectsUnknownFramework(t *testing.T) {
+	t.Parallel()
+
+	if _, err := templates.HandlerFile("myapp", "beego"); err == nil {
+		t.Fatal("expected an error for an unsupported framework")
+	}
+}
+
+func TestMainFile_InjectsDependencies(t *testing.T) {
+	t.Parallel()
+
+	for _, fw := range []string{"fiber", "gin", "echo", "chi", "iris"} {
+		content, err := templates.MainFile("myapp", fw)
+		if err != nil {
+			t.Fatalf("%s: %v", fw, err)
+		}
+		for _, want := range []string{
+			"repo := repositories.NewRepository(config.DB)",
+			"service := services.NewService(repo)",
+			"handler := handlers.NewHandler(service)",
+			"if err := config.Connect(); err != nil",
+			"defer config.Close()",
+		} {
+			if !strings.Contains(content, want) {
+				t.Errorf("%s main.go missing %q", fw, want)
+			}
+		}
+		if strings.Contains(content, "{{") {
+			t.Errorf("%s main.go has an unrendered template action:\n%s", fw, content)
+		}
+	}
+}
+
+func TestDatabaseFile_PoolingAndErrorReturn(t *testing.T) {
+	t.Parallel()
+
+	for _, db := range []string{"postgres", "mysql", "sqlite"} {
+		for _, orm := range []string{"none", "gorm", "xorm", "ent"} {
+			content, err := templates.DatabaseFile(db, orm)
+			if err != nil {
+				t.Fatalf("%s/%s: %v", db, orm, err)
+			}
+			for _, want := range []string{
+				"func Connect() error",
+				"func Close()",
+				"SetMaxOpenConns(",
+				"SetConnMaxLifetime(",
+			} {
+				if !strings.Contains(content, want) {
+					t.Errorf("%s/%s missing %q", db, orm, want)
+				}
+			}
+			if strings.Contains(content, "log.Fatal") {
+				t.Errorf("%s/%s should return errors rather than calling log.Fatal", db, orm)
+			}
+		}
+	}
+}
+
+func TestDatabaseFile_RejectsUnknownDatabase(t *testing.T) {
+	t.Parallel()
+
+	if _, err := templates.DatabaseFile("mongodb", "none"); err == nil {
+		t.Fatal("expected an error for an unsupported database")
 	}
 }

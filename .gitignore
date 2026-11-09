@@ -1,4 +1,14 @@
-# Added by goreleaser init:
+# Build output
 dist/
 bin/
+
+# Compiled binaries (never commit build output)
 /layrgo
+/goscaf
+*.exe
+
+# Local environment
+.env
+
+# Local review notes (not part of the project)
+.review/

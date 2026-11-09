@@ -1,0 +1,23 @@
+package services
+
+import (
+	"context"
+
+	"{{.Module}}/internal/repositories"
+)
+
+type Service interface {
+	GetMessage(ctx context.Context) (string, error)
+}
+
+type serviceImpl struct {
+	repo repositories.Repository
+}
+
+func NewService(r repositories.Repository) Service {
+	return &serviceImpl{repo: r}
+}
+
+func (s *serviceImpl) GetMessage(ctx context.Context) (string, error) {
+	return s.repo.GetMessage(ctx)
+}

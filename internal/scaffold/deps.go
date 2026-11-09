@@ -3,7 +3,6 @@ package scaffold
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -12,12 +11,12 @@ import (
 const commandTimeout = 5 * time.Minute
 
 func installDependencies(cfg Config) error {
-	fmt.Println("📦 Initializing Go module...")
+	logStep("📦 Initializing Go module...")
 	if err := runGo(cfg.ProjectPath, "mod", "init", cfg.ProjectName); err != nil {
 		return err
 	}
 
-	fmt.Println("📦 Installing dependencies...")
+	logStep("📦 Installing dependencies...")
 
 	pkgs := []string{
 		"github.com/joho/godotenv@v1.5.1",
@@ -66,17 +65,33 @@ func installDependencies(cfg Config) error {
 		pkgs = append(pkgs, "entgo.io/ent@v0.14.1", "entgo.io/ent/cmd/ent@v0.14.1")
 	}
 
+	// Install the pinned versions. "go get" records them in go.mod.
 	if err := runGo(cfg.ProjectPath, append([]string{"get"}, pkgs...)...); err != nil {
 		return err
 	}
+
+	// "go mod tidy" promotes the modules the generated code imports from
+	// "// indirect" to direct requirements, which is the only reason it runs
+	// here. Its failure is NOT fatal: tidy re-resolves every requirement to the
+	// newest compatible release, which discards the pins above and can select a
+	// module needing a newer Go toolchain than the user has
+	// (gorm.io/driver/postgres v1.6.3 requires Go 1.25+, so tidy aborts on Go
+	// 1.23 with GOTOOLCHAIN=local). The pins are re-asserted afterwards, so a
+	// skipped tidy only costs cosmetic "// indirect" markers in go.mod.
 	if err := runGo(cfg.ProjectPath, "mod", "tidy"); err != nil {
+		logStep("ℹ️  skipped go mod tidy (%v); pinned versions are already recorded", err)
+	}
+
+	// Re-assert the pins: if tidy upgraded anything, put it back.
+	if err := runGo(cfg.ProjectPath, append([]string{"get"}, pkgs...)...); err != nil {
 		return err
 	}
+
 	if err := runGo(cfg.ProjectPath, "mod", "download"); err != nil {
 		return err
 	}
 
-	fmt.Println("✅ Dependencies installed successfully!")
+	logStep("✅ Dependencies installed successfully!")
 	return nil
 }
 
@@ -86,8 +101,8 @@ func runGo(dir string, args ...string) error {
 
 	cmd := exec.CommandContext(ctx, "go", args...)
 	cmd.Dir = dir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = progressOut
+	cmd.Stderr = progressOut
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("go %s: %w", strings.Join(args, " "), err)

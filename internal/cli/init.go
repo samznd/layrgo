@@ -16,6 +16,7 @@ var (
 	flagDatabase  string
 	flagORM       string
 	flagNoORM     bool
+	flagForce     bool
 )
 
 // InitCmd scaffolds a new Go web application.
@@ -30,7 +31,9 @@ flags to scaffold non-interactively (great for scripts and demos).
 Examples:
   layrgo init
   layrgo init myapi --framework gin --database Postgres --orm GORM
-  layrgo init myapi --framework chi --database SQLite --no-orm`,
+  layrgo init myapi --framework chi --database SQLite --no-orm
+
+Scaffolding refuses to write into a non-empty directory; pass --force to override.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := resolveConfig(args)
@@ -38,11 +41,27 @@ Examples:
 			return err
 		}
 
+		if err := ensureTargetDir(cfg.ProjectPath, flagForce); err != nil {
+			return err
+		}
+
+		// Only a directory we created ourselves may be cleaned up on failure;
+		// never remove something that was already there.
+		_, statErr := os.Stat(cfg.ProjectPath)
+		weCreatedDir := os.IsNotExist(statErr)
+
 		if err := os.MkdirAll(cfg.ProjectPath, 0o755); err != nil {
 			return fmt.Errorf("create project directory: %w", err)
 		}
 
 		if err := scaffold.Scaffold(cfg); err != nil {
+			if weCreatedDir {
+				if rmErr := os.RemoveAll(cfg.ProjectPath); rmErr != nil {
+					fmt.Printf("⚠️  could not clean up %s: %v\n", cfg.ProjectPath, rmErr)
+				} else {
+					fmt.Printf("🧹 Removed partially created %s\n", cfg.ProjectPath)
+				}
+			}
 			return err
 		}
 
@@ -56,6 +75,7 @@ func init() {
 	InitCmd.Flags().StringVar(&flagDatabase, "database", "", "database: Postgres, MySQL, or SQLite")
 	InitCmd.Flags().StringVar(&flagORM, "orm", "", "ORM: GORM, XORM, or Ent")
 	InitCmd.Flags().BoolVar(&flagNoORM, "no-orm", false, "use database/sql instead of an ORM")
+	InitCmd.Flags().BoolVar(&flagForce, "force", false, "scaffold into a non-empty directory, overwriting existing files")
 }
 
 func resolveConfig(args []string) (scaffold.Config, error) {
@@ -81,6 +101,10 @@ func configFromFlags(name string) (scaffold.Config, error) {
 		ORM:         "none",
 	}
 
+	if err := validateProjectName(name); err != nil {
+		return cfg, err
+	}
+
 	if cfg.Framework == "" || cfg.Database == "" {
 		return cfg, fmt.Errorf("--framework and --database are required for non-interactive init")
 	}
@@ -93,28 +117,39 @@ func configFromFlags(name string) (scaffold.Config, error) {
 		cfg.ORM = flagORM
 	}
 
-	if err := validateChoice("framework", cfg.Framework, []string{"Fiber", "Gin", "Echo", "Chi", "Iris"}); err != nil {
+	framework, err := canonicalChoice("framework", cfg.Framework, []string{"Fiber", "Gin", "Echo", "Chi", "Iris"})
+	if err != nil {
 		return cfg, err
 	}
-	if err := validateChoice("database", cfg.Database, []string{"Postgres", "MySQL", "SQLite"}); err != nil {
+	cfg.Framework = framework
+
+	database, err := canonicalChoice("database", cfg.Database, []string{"Postgres", "MySQL", "SQLite"})
+	if err != nil {
 		return cfg, err
 	}
+	cfg.Database = database
+
 	if cfg.ORM != "none" {
-		if err := validateChoice("orm", cfg.ORM, []string{"GORM", "XORM", "Ent"}); err != nil {
+		orm, err := canonicalChoice("orm", cfg.ORM, []string{"GORM", "XORM", "Ent"})
+		if err != nil {
 			return cfg, err
 		}
+		cfg.ORM = orm
 	}
 
 	return cfg, nil
 }
 
-func validateChoice(name, value string, allowed []string) error {
+// canonicalChoice validates value case-insensitively and returns the canonical
+// spelling from allowed. Normalizing here, at the input boundary, means everything
+// downstream can compare against one known form instead of re-lowering per call site.
+func canonicalChoice(name, value string, allowed []string) (string, error) {
 	for _, a := range allowed {
 		if strings.EqualFold(value, a) {
-			return nil
+			return a, nil
 		}
 	}
-	return fmt.Errorf("invalid %s %q (allowed: %s)", name, value, strings.Join(allowed, ", "))
+	return "", fmt.Errorf("invalid %s %q (allowed: %s)", name, value, strings.Join(allowed, ", "))
 }
 
 func promptConfig() (scaffold.Config, error) {
@@ -154,6 +189,10 @@ func promptConfig() (scaffold.Config, error) {
 		}
 	}
 
+	if err := validateProjectName(cfg.ProjectName); err != nil {
+		return cfg, err
+	}
+
 	cfg.ProjectPath = filepath.Join(".", cfg.ProjectName)
 	return cfg, nil
 }
@@ -161,4 +200,44 @@ func promptConfig() (scaffold.Config, error) {
 func cancelErr(err error) error {
 	fmt.Println("\nOperation canceled by user.")
 	return err
+}
+
+// ensureTargetDir refuses to scaffold into a directory that already has contents,
+// so a mistyped name can never clobber an existing project. A missing directory is
+// fine (we create it next); force skips the check.
+func ensureTargetDir(path string, force bool) error {
+	if force {
+		return nil
+	}
+
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("inspect project directory: %w", err)
+	}
+	if len(entries) > 0 {
+		return fmt.Errorf("directory %s is not empty (use --force to scaffold into it anyway)", path)
+	}
+	return nil
+}
+
+// validateProjectName rejects names that are not usable as a Go module path or that
+// would place the project outside the current directory. Checked before any
+// filesystem work so a bad name cannot leave a half-built project behind.
+func validateProjectName(name string) error {
+	if strings.TrimSpace(name) == "" {
+		return fmt.Errorf("project name is required")
+	}
+	if name != filepath.Clean(name) || filepath.IsAbs(name) {
+		return fmt.Errorf("invalid project name %q: must be a plain directory name", name)
+	}
+	if strings.ContainsAny(name, `/\`) || name == ".." || name == "." {
+		return fmt.Errorf("invalid project name %q: must not contain path separators", name)
+	}
+	if strings.ContainsAny(name, " \t\n\"'`!$&*()[]{}<>|;:?") {
+		return fmt.Errorf("invalid project name %q: must be a valid Go module path (letters, digits, '.', '-', '_')", name)
+	}
+	return nil
 }

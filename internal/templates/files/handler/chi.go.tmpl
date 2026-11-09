@@ -1,0 +1,28 @@
+package handlers
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"{{.Module}}/internal/services"
+)
+
+type Handler struct {
+	service services.Service
+}
+
+func NewHandler(s services.Service) *Handler {
+	return &Handler{service: s}
+}
+
+func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
+	message, err := h.service.GetMessage(r.Context())
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]string{"message": message}); err != nil {
+		return
+	}
+}

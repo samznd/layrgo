@@ -1,0 +1,3 @@
+{{define "di"}}	repo := repositories.NewRepository(config.DB)
+	service := services.NewService(repo)
+	handler := handlers.NewHandler(service){{end}}

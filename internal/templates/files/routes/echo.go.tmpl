@@ -1,0 +1,11 @@
+package routes
+
+import (
+	"{{.Module}}/internal/handlers"
+
+	"github.com/labstack/echo/v4"
+)
+
+func SetupRoutes(api *echo.Group, h *handlers.Handler) {
+	api.GET("/message", h.Get)
+}
