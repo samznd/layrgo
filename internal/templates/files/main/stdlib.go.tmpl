@@ -1,0 +1,56 @@
+package main
+
+import (
+	"log"
+	"net/http"
+	"time"
+
+	"{{.Module}}/config"
+	"{{.Module}}/internal/handlers"
+	"{{.Module}}/internal/repositories"
+	"{{.Module}}/internal/routes"
+	"{{.Module}}/internal/services"
+	"{{.Module}}/pkg/utils"
+)
+
+func main() {
+	if err := utils.InitialEnv(); err != nil {
+		log.Fatal(err)
+	}
+	if err := config.Connect(); err != nil {
+		log.Fatalf("connect to database: %v", err)
+	}
+	defer config.Close()
+
+	mux := http.NewServeMux()
+
+{{template "di" .}}
+
+	routes.SetupRoutes(mux, handler)
+
+	// An explicit http.Server rather than http.ListenAndServe: the package-level
+	// helper has no timeouts, so a slow or idle client can hold a connection
+	// open indefinitely.
+	srv := &http.Server{
+		Addr:              ":3000",
+		Handler:           logRequests(mux),
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	log.Println("🚀 net/http server is running on http://localhost:3000")
+	if err := srv.ListenAndServe(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// logRequests is the std library stand-in for a framework's logger middleware.
+func logRequests(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		next.ServeHTTP(w, r)
+		log.Printf("%s %s %s", r.Method, r.URL.Path, time.Since(start))
+	})
+}

@@ -5,6 +5,20 @@ This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.P
 
 ## Unreleased
 
+### Added
+- **`net/http` as a sixth framework, selected with `--framework stdlib`.** Generated
+  projects route with `http.ServeMux` method patterns (`"GET /api/v1/message"`), which
+  Go 1.22 added, so the stack pulls in **no router dependency at all** — a SQLite +
+  `database/sql` project now needs only `godotenv` and the driver. The generated
+  `main.go` uses an explicit `http.Server` with read, write, header and idle timeouts
+  rather than `http.ListenAndServe`, which sets none.
+- Scaffolding with `--framework stdlib` on a toolchain older than Go 1.22 is now
+  refused up front, before any files are written. Pre-1.22 `ServeMux` treats
+  `"GET /path"` as a literal path, so the project would compile and run while every
+  request 404s; the error names the required version and the alternatives.
+
+## v1.1.1 — 2026-11-09
+
 ### Fixed
 - **`layrgo version` reports the real version when installed with `go install`.**
   The version, commit and date were supplied exclusively by `-ldflags -X`, which only

@@ -17,7 +17,7 @@ Layrgo is a CLI that generates a complete, compilable Go web project — clean a
 | Write Dockerfile and compose yourself   | Docker + compose generated per database      |
 | Hope the layout is idiomatic            | Standard Go project layout out of the box    |
 
-**Supported stacks:** Fiber · Gin · Echo · Chi · Iris × Postgres · MySQL · SQLite × GORM · XORM · Ent · raw `database/sql`
+**Supported stacks:** Fiber · Gin · Echo · Chi · Iris · `net/http` × Postgres · MySQL · SQLite × GORM · XORM · Ent · raw `database/sql`
 
 ## Quick start
 
@@ -109,7 +109,7 @@ layrgo --help
 
 | Flag          | Description                    |
 | ------------- | ------------------------------ |
-| `--framework` | Fiber, Gin, Echo, Chi, or Iris |
+| `--framework` | Fiber, Gin, Echo, Chi, Iris, or `stdlib` (net/http, no router dependency; needs Go 1.22+) |
 | `--database`  | Postgres, MySQL, or SQLite     |
 | `--orm`       | GORM, XORM, or Ent             |
 | `--no-orm`    | Use `database/sql` instead     |
@@ -151,7 +151,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ## Roadmap
 
-- [x] Multi-framework support (Fiber, Gin, Echo, Chi, Iris)
+- [x] Multi-framework support (Fiber, Gin, Echo, Chi, Iris, net/http)
 - [x] Docker + compose per database
 - [x] Compilable generated output with DI
 - [x] Non-interactive `init` flags

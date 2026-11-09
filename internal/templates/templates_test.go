@@ -68,8 +68,8 @@ func TestRoutesFile_NoDoubleAPIPrefix(t *testing.T) {
 		}
 	}
 
-	// Chi and Iris receive the bare router, so they own the prefix.
-	for _, fw := range []string{"chi", "iris"} {
+	// Chi, Iris and stdlib receive the bare router/mux, so they own the prefix.
+	for _, fw := range []string{"chi", "iris", "stdlib"} {
 		content, err := templates.RoutesFile("myapp", fw)
 		if err != nil {
 			t.Fatal(err)
@@ -177,5 +177,83 @@ func TestDatabaseFile_RejectsUnknownDatabase(t *testing.T) {
 
 	if _, err := templates.DatabaseFile("mongodb", "none"); err == nil {
 		t.Fatal("expected an error for an unsupported database")
+	}
+}
+
+// The stdlib framework exists so a generated project can run on net/http alone.
+// These assertions pin the two properties that make that true.
+func TestStdlibTemplates_NoThirdPartyRouter(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name   string
+		render func() (string, error)
+	}{
+		{"main", func() (string, error) { return templates.MainFile("myapp", "stdlib") }},
+		{"routes", func() (string, error) { return templates.RoutesFile("myapp", "stdlib") }},
+		{"handler", func() (string, error) { return templates.HandlerFile("myapp", "stdlib") }},
+	} {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			content, err := tc.render()
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, router := range []string{
+				"github.com/go-chi/chi",
+				"github.com/gin-gonic/gin",
+				"github.com/labstack/echo",
+				"github.com/gofiber/fiber",
+				"github.com/kataras/iris",
+			} {
+				if strings.Contains(content, router) {
+					t.Errorf("stdlib %s imports %s; it must depend on net/http only:\n%s",
+						tc.name, router, content)
+				}
+			}
+			if !strings.Contains(content, "net/http") {
+				t.Errorf("stdlib %s should use net/http:\n%s", tc.name, content)
+			}
+		})
+	}
+}
+
+func TestStdlibRoutes_UsesMethodPattern(t *testing.T) {
+	t.Parallel()
+
+	content, err := templates.RoutesFile("myapp", "stdlib")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Go 1.22 method patterns are the whole reason no router is needed. Without
+	// the "GET " prefix the route would match every method.
+	if !strings.Contains(content, `"GET /api/v1/message"`) {
+		t.Errorf("stdlib routes should register a GET method pattern:\n%s", content)
+	}
+	if !strings.Contains(content, "*http.ServeMux") {
+		t.Errorf("stdlib routes should take an *http.ServeMux:\n%s", content)
+	}
+}
+
+func TestStdlibMain_SetsServerTimeouts(t *testing.T) {
+	t.Parallel()
+
+	content, err := templates.MainFile("myapp", "stdlib")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// http.ListenAndServe has no timeouts, so an idle client can hold a
+	// connection open indefinitely. The generated server must set them.
+	if strings.Contains(content, "http.ListenAndServe(") {
+		t.Errorf("stdlib main should use an explicit http.Server, not http.ListenAndServe:\n%s", content)
+	}
+	for _, field := range []string{"ReadHeaderTimeout", "ReadTimeout", "WriteTimeout", "IdleTimeout"} {
+		if !strings.Contains(content, field) {
+			t.Errorf("stdlib main should set %s:\n%s", field, content)
+		}
 	}
 }

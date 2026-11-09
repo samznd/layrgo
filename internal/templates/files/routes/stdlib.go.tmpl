@@ -1,0 +1,14 @@
+package routes
+
+import (
+	"net/http"
+
+	"{{.Module}}/internal/handlers"
+)
+
+// SetupRoutes registers the API routes on mux. The method-and-pattern syntax
+// ("GET /path") is std library routing, available since Go 1.22, so no
+// third-party router is needed.
+func SetupRoutes(mux *http.ServeMux, h *handlers.Handler) {
+	mux.HandleFunc("GET /api/v1/message", h.Get)
+}

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/samznd/layrgo/internal/fileutil"
@@ -93,7 +95,57 @@ func validateConfig(cfg Config) error {
 	if cfg.Framework == "" || cfg.Database == "" {
 		return fmt.Errorf("framework and database are required")
 	}
+	if err := checkFrameworkToolchain(cfg.Framework, runtime.Version()); err != nil {
+		return err
+	}
 	return nil
+}
+
+// minStdlibRoutingGo is the first Go release whose http.ServeMux understands
+// method-and-wildcard patterns ("GET /path"). Before it, ServeMux treats the
+// whole string as a literal path: the generated project still compiles and
+// runs, but every request 404s. That silent failure is why this is checked
+// up front rather than left to the user to discover.
+const minStdlibRoutingGo = 22
+
+// checkFrameworkToolchain rejects a stack the local toolchain cannot run.
+// goVersion is runtime.Version() ("go1.23.4", or a devel/custom string).
+func checkFrameworkToolchain(framework, goVersion string) error {
+	if strings.ToLower(framework) != "stdlib" {
+		return nil
+	}
+	minor, ok := goMinor(goVersion)
+	if !ok {
+		// An unparseable version is not evidence of an old toolchain, so do not
+		// block on it; a genuinely old one fails loudly at build time instead.
+		return nil
+	}
+	if minor < minStdlibRoutingGo {
+		return fmt.Errorf(
+			"the stdlib framework needs Go 1.%d or newer for net/http routing, but this toolchain is %s;\nchoose another framework (Fiber, Gin, Echo, Chi, Iris) or upgrade Go",
+			minStdlibRoutingGo, goVersion)
+	}
+	return nil
+}
+
+// goMinor extracts the minor version from a "go1.23.4" style string. It reports
+// false when the string is not a released "go1.N" version.
+func goMinor(goVersion string) (int, bool) {
+	rest, ok := strings.CutPrefix(goVersion, "go1.")
+	if !ok {
+		return 0, false
+	}
+	if i := strings.IndexFunc(rest, func(r rune) bool { return r < '0' || r > '9' }); i >= 0 {
+		rest = rest[:i]
+	}
+	if rest == "" {
+		return 0, false
+	}
+	minor, err := strconv.Atoi(rest)
+	if err != nil {
+		return 0, false
+	}
+	return minor, true
 }
 
 func envFile(database string) string {

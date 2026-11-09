@@ -33,6 +33,8 @@ func installDependencies(cfg Config) error {
 		pkgs = append(pkgs, "github.com/go-chi/chi/v5@v5.2.1")
 	case "iris":
 		pkgs = append(pkgs, "github.com/kataras/iris/v12@v12.2.11")
+	case "stdlib":
+		// net/http needs no router dependency: std library routing covers it.
 	default:
 		return fmt.Errorf("invalid framework: %s", cfg.Framework)
 	}

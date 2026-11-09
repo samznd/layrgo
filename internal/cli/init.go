@@ -117,7 +117,7 @@ func configFromFlags(name string) (scaffold.Config, error) {
 		cfg.ORM = flagORM
 	}
 
-	framework, err := canonicalChoice("framework", cfg.Framework, []string{"Fiber", "Gin", "Echo", "Chi", "Iris"})
+	framework, err := canonicalChoice("framework", cfg.Framework, []string{"Fiber", "Gin", "Echo", "Chi", "Iris", "stdlib"})
 	if err != nil {
 		return cfg, err
 	}
@@ -161,7 +161,7 @@ func promptConfig() (scaffold.Config, error) {
 
 	if err := survey.AskOne(&survey.Select{
 		Message: "Choose your web framework:",
-		Options: []string{"Fiber", "Gin", "Echo", "Chi", "Iris"},
+		Options: []string{"Fiber", "Gin", "Echo", "Chi", "Iris", "stdlib"},
 	}, &cfg.Framework); err != nil {
 		return cfg, cancelErr(err)
 	}

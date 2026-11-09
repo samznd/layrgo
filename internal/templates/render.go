@@ -28,7 +28,7 @@ type Data struct {
 }
 
 var (
-	frameworks = map[string]bool{"fiber": true, "gin": true, "echo": true, "chi": true, "iris": true}
+	frameworks = map[string]bool{"fiber": true, "gin": true, "echo": true, "chi": true, "iris": true, "stdlib": true}
 	orms       = map[string]bool{"none": true, "gorm": true, "xorm": true, "ent": true}
 )
 

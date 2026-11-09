@@ -110,7 +110,7 @@ func TestScaffold_ComposeMatchesDatabase(t *testing.T) {
 func TestScaffold_AllStacksWriteFiles(t *testing.T) {
 	t.Parallel()
 
-	frameworks := []string{"Fiber", "Gin", "Echo", "Chi", "Iris"}
+	frameworks := []string{"Fiber", "Gin", "Echo", "Chi", "Iris", "stdlib"}
 	databases := []string{"Postgres", "MySQL", "SQLite"}
 	orms := []string{"none", "GORM", "XORM", "Ent"}
 
