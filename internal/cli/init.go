@@ -71,7 +71,7 @@ Scaffolding refuses to write into a non-empty directory; pass --force to overrid
 }
 
 func init() {
-	InitCmd.Flags().StringVar(&flagFramework, "framework", "", "web framework: Fiber, Gin, Echo, Chi, or Iris")
+	InitCmd.Flags().StringVar(&flagFramework, "framework", "", "web framework: "+strings.Join(Frameworks, ", "))
 	InitCmd.Flags().StringVar(&flagDatabase, "database", "", "database: Postgres, MySQL, or SQLite")
 	InitCmd.Flags().StringVar(&flagORM, "orm", "", "ORM: GORM, XORM, or Ent")
 	InitCmd.Flags().BoolVar(&flagNoORM, "no-orm", false, "use database/sql instead of an ORM")
@@ -117,7 +117,7 @@ func configFromFlags(name string) (scaffold.Config, error) {
 		cfg.ORM = flagORM
 	}
 
-	framework, err := canonicalChoice("framework", cfg.Framework, []string{"Fiber", "Gin", "Echo", "Chi", "Iris", "stdlib"})
+	framework, err := canonicalChoice("framework", cfg.Framework, Frameworks)
 	if err != nil {
 		return cfg, err
 	}
@@ -143,6 +143,11 @@ func configFromFlags(name string) (scaffold.Config, error) {
 // canonicalChoice validates value case-insensitively and returns the canonical
 // spelling from allowed. Normalizing here, at the input boundary, means everything
 // downstream can compare against one known form instead of re-lowering per call site.
+// Frameworks is the single source of truth for the supported web frameworks:
+// the --framework help text, the flag validation and the interactive wizard all
+// read it, so adding a framework cannot leave one of them behind.
+var Frameworks = []string{"Fiber", "Gin", "Echo", "Chi", "Iris", "stdlib"}
+
 func canonicalChoice(name, value string, allowed []string) (string, error) {
 	for _, a := range allowed {
 		if strings.EqualFold(value, a) {
@@ -161,7 +166,7 @@ func promptConfig() (scaffold.Config, error) {
 
 	if err := survey.AskOne(&survey.Select{
 		Message: "Choose your web framework:",
-		Options: []string{"Fiber", "Gin", "Echo", "Chi", "Iris", "stdlib"},
+		Options: Frameworks,
 	}, &cfg.Framework); err != nil {
 		return cfg, cancelErr(err)
 	}

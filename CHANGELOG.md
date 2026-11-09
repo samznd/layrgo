@@ -5,6 +5,15 @@ This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.P
 
 ## Unreleased
 
+### Fixed
+- **`--framework` help text now lists every supported framework.** v1.2.0 added
+  `stdlib` to the validation list and the interactive wizard but not to the flag's
+  own description, so `layrgo init --help` still read "Fiber, Gin, Echo, Chi, or
+  Iris" and the new framework was undiscoverable from the CLI. The feature itself
+  worked. All three now read one `cli.Frameworks` slice, and tests assert the help
+  text lists every entry and that every entry has renderable templates behind it.
+
+
 ### Added
 - **`net/http` as a sixth framework, selected with `--framework stdlib`.** Generated
   projects route with `http.ServeMux` method patterns (`"GET /api/v1/message"`), which

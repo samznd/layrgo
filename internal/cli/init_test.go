@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/samznd/layrgo/internal/templates"
 )
 
 func TestConfigFromFlags_RequiresFrameworkAndDatabase(t *testing.T) {
@@ -153,4 +155,45 @@ func TestEnsureTargetDir(t *testing.T) {
 			t.Fatalf("expected --force to override, got %v", err)
 		}
 	})
+}
+
+// The stale --framework help text shipped in v1.2.0 because the flag
+// description, the validation list and the wizard options were three separate
+// literals and only two were updated. They now share Frameworks; this test
+// asserts the list stays in sync with what the template layer can actually
+// render, so a framework can never be offered without templates behind it (or
+// vice versa).
+func TestFrameworks_MatchRenderableTemplates(t *testing.T) {
+	t.Parallel()
+
+	for _, fw := range Frameworks {
+		fw := fw
+		t.Run(fw, func(t *testing.T) {
+			t.Parallel()
+
+			if _, err := templates.MainFile("m", fw); err != nil {
+				t.Errorf("Frameworks offers %q but MainFile fails: %v", fw, err)
+			}
+			if _, err := templates.RoutesFile("m", fw); err != nil {
+				t.Errorf("Frameworks offers %q but RoutesFile fails: %v", fw, err)
+			}
+			if _, err := templates.HandlerFile("m", fw); err != nil {
+				t.Errorf("Frameworks offers %q but HandlerFile fails: %v", fw, err)
+			}
+		})
+	}
+}
+
+func TestFrameworkFlag_HelpListsEveryFramework(t *testing.T) {
+	t.Parallel()
+
+	flag := InitCmd.Flags().Lookup("framework")
+	if flag == nil {
+		t.Fatal("no --framework flag registered")
+	}
+	for _, fw := range Frameworks {
+		if !strings.Contains(flag.Usage, fw) {
+			t.Errorf("--framework help %q omits %q", flag.Usage, fw)
+		}
+	}
 }
