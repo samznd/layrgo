@@ -228,7 +228,7 @@ func TestScaffold_RunsWithoutDotEnv(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("status = %d, body = %s", resp.StatusCode, body)
 		}
-		if !strings.Contains(string(body), "data from repository") {
+		if !strings.Contains(string(body), "data from the store") {
 			t.Fatalf("unexpected body: %s", body)
 		}
 		return // served correctly with no .env present
