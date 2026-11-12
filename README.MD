@@ -172,12 +172,12 @@ make vet
 
 ## Releases
 
-Versioning follows [Semantic Versioning](https://semver.org/) with `v`-prefixed git tags (`v1.0.0`, `v1.1.0`, `v1.2.0`, …).
+Versioning follows [Semantic Versioning](https://semver.org/) with `v`-prefixed git tags (`v1.0.0`, `v1.1.0`, `v1.2.0`, `v1.3.0`, …).
 
 ```bash
 # tag a release (triggers GoReleaser via GitHub Actions)
-git tag -a v1.2.1 -m "v1.2.1"
-git push origin v1.2.1
+git tag -a v1.3.0 -m "v1.3.0"
+git push origin v1.3.0
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.

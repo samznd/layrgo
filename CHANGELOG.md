@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
-## Unreleased
+## v1.3.0 — 2026-11-12
 
 ### Changed
 - **Generated projects are packaged by feature instead of by layer.** The sample
