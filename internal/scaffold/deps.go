@@ -34,7 +34,7 @@ func installDependencies(cfg Config) error {
 	case "iris":
 		pkgs = append(pkgs, "github.com/kataras/iris/v12@v12.2.11")
 	case "stdlib":
-		// net/http needs no router dependency: std library routing covers it.
+		// net/http needs no router.
 	default:
 		return fmt.Errorf("invalid framework: %s", cfg.Framework)
 	}
@@ -72,19 +72,16 @@ func installDependencies(cfg Config) error {
 		return err
 	}
 
-	// "go mod tidy" promotes the modules the generated code imports from
-	// "// indirect" to direct requirements, which is the only reason it runs
-	// here. Its failure is NOT fatal: tidy re-resolves every requirement to the
-	// newest compatible release, which discards the pins above and can select a
-	// module needing a newer Go toolchain than the user has
-	// (gorm.io/driver/postgres v1.6.3 requires Go 1.25+, so tidy aborts on Go
-	// 1.23 with GOTOOLCHAIN=local). The pins are re-asserted afterwards, so a
-	// skipped tidy only costs cosmetic "// indirect" markers in go.mod.
+	// tidy moves the modules we import out of "// indirect". It is allowed to
+	// fail: it re-resolves everything to the newest release and can pick a module
+	// that needs a newer Go than the user has (gorm.io/driver/postgres v1.6.3
+	// wants Go 1.25). We pin again right after, so a failed tidy only leaves
+	// "// indirect" markers behind.
 	if err := runGo(cfg.ProjectPath, "mod", "tidy"); err != nil {
 		logStep("ℹ️  skipped go mod tidy (%v); pinned versions are already recorded", err)
 	}
 
-	// Re-assert the pins: if tidy upgraded anything, put it back.
+	// Pin again in case tidy upgraded something.
 	if err := runGo(cfg.ProjectPath, append([]string{"get"}, pkgs...)...); err != nil {
 		return err
 	}

@@ -12,8 +12,7 @@ import (
 
 var DB *gorm.DB
 
-// Connect opens the database and verifies it is reachable. It returns an error
-// rather than exiting, so the caller decides how to handle failure.
+// Connect opens the database and checks it is reachable.
 func Connect() error {
 	{{.DSNBlock}}
 
@@ -27,8 +26,8 @@ func Connect() error {
 		return fmt.Errorf("access underlying pool: %w", err)
 	}
 
-	// Pool limits: an unbounded pool is a common way to exhaust a database's
-	// connection slots under load. Tune these for your workload.
+	// Cap the pool so a busy app can't use up the database's connections.
+	// Tune these for your workload.
 	sqlDB.SetMaxOpenConns(25)
 	sqlDB.SetMaxIdleConns(5)
 	sqlDB.SetConnMaxLifetime(5 * time.Minute)

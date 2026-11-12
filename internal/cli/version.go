@@ -8,17 +8,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Set at build time via -ldflags by the Makefile and GoReleaser. When they are
-// left at these defaults the values are recovered from the build info that the
-// toolchain stamps into every binary, so a `go install` build — which passes no
-// linker flags — still reports something true.
+// Set with -ldflags by the Makefile and GoReleaser. go install passes none,
+// so resolveVersion falls back to the build info.
 var (
 	Version = "dev"
 	Commit  = "none"
 	Date    = "unknown"
 )
 
-// Sentinel values meaning "the linker did not set this".
+// Defaults when the linker didn't set anything.
 const (
 	unsetVersion = "dev"
 	unsetCommit  = "none"
@@ -35,17 +33,10 @@ var VersionCmd = &cobra.Command{
 	},
 }
 
-// resolveVersion decides what `layrgo version` reports. Linker-provided values
-// always win, so the Makefile and GoReleaser behavior is unchanged; each field
-// then falls back independently to build info, and keeps its sentinel when
-// neither source has an answer.
-//
-// The two fallback sources are disjoint in practice. A module-zip build
-// (`go install <module>@<version>`) knows its module version but records no
-// vcs.* settings, because a module zip contains no repository. A build from a
-// working tree (`go build`) has the reverse: real vcs.* settings, but the
-// module version "(devel)". Each field is therefore resolved on its own rather
-// than treating build info as all-or-nothing.
+// resolveVersion picks what `layrgo version` prints. ldflags win. Otherwise
+// each field falls back to build info on its own: a go install build knows the
+// module version but has no vcs info, and a go build from a checkout is the
+// other way round.
 func resolveVersion(ldVersion, ldCommit, ldDate string, bi *debug.BuildInfo) (version, commit, date string) {
 	version, commit, date = ldVersion, ldCommit, ldDate
 
@@ -54,9 +45,7 @@ func resolveVersion(ldVersion, ldCommit, ldDate string, bi *debug.BuildInfo) (ve
 	}
 
 	if version == unsetVersion {
-		// "(devel)" is what the toolchain reports for a build from a working
-		// tree rather than a tagged module version; it says no more than "dev",
-		// so keep the sentinel.
+		// "(devel)" tells us nothing more than "dev" does.
 		if v := bi.Main.Version; v != "" && v != "(devel)" {
 			version = v
 		}
@@ -85,10 +74,7 @@ func resolveVersion(ldVersion, ldCommit, ldDate string, bi *debug.BuildInfo) (ve
 	return normalizeVersion(version), commit, date
 }
 
-// formatVersion renders the version line, omitting the parenthetical detail
-// when neither the commit nor the build date is known. A module-zip install
-// resolves a real version but no vcs.* data, and printing
-// "(commit: none, built: unknown)" next to a correct version is noise.
+// formatVersion leaves out the (commit, built) part when both are unknown.
 func formatVersion(version, commit, date string) string {
 	line := "layrgo " + version
 
@@ -105,9 +91,8 @@ func formatVersion(version, commit, date string) string {
 	return line + " (" + strings.Join(parts, ", ") + ")"
 }
 
-// normalizeVersion gives both build paths the same shape. GoReleaser stamps
-// "1.1.0" while module versions and git tags are "v1.1.0", so settle on the
-// v-prefixed form and leave non-version strings such as "dev" alone.
+// normalizeVersion adds the leading "v". GoReleaser stamps "1.1.0", tags are
+// "v1.1.0".
 func normalizeVersion(version string) string {
 	if version == "" {
 		return unsetVersion

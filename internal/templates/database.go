@@ -5,9 +5,7 @@ import (
 	"strings"
 )
 
-// dbSpec holds the per-database pieces the config templates need. Keeping these
-// in one table means adding a database is a single entry rather than editing
-// three near-identical template literals.
+// dbSpec is the per-database bits the config templates need.
 type dbSpec struct {
 	driverImport  string // raw database/sql + xorm driver import line
 	driverName    string // sql.Open / xorm.NewEngine driver string
@@ -71,7 +69,7 @@ func DatabaseFile(database, orm string) (string, error) {
 
 	switch orm {
 	case "gorm":
-		// GORM brings its own driver; the raw driver import is not needed.
+		// GORM has its own driver.
 		data.DriverImport = spec.gormImport
 		return render("config/gorm.go.tmpl", data)
 	case "xorm":

@@ -6,9 +6,7 @@ import (
 	"net/http"
 )
 
-// messageService is what this handler needs from the service layer. Go
-// interfaces are satisfied implicitly, so the consumer declares them: the
-// handler depends on one small behaviour, not on a concrete service type.
+// messageService is the part of the service this handler uses.
 type messageService interface {
 	GetMessage(ctx context.Context) (string, error)
 }

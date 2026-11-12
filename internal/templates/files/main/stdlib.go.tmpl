@@ -25,9 +25,7 @@ func main() {
 
 	message.SetupRoutes(mux, handler)
 
-	// An explicit http.Server rather than http.ListenAndServe: the package-level
-	// helper has no timeouts, so a slow or idle client can hold a connection
-	// open indefinitely.
+	// http.ListenAndServe sets no timeouts, so build the server by hand.
 	srv := &http.Server{
 		Addr:              ":3000",
 		Handler:           logRequests(mux),
@@ -43,7 +41,7 @@ func main() {
 	}
 }
 
-// logRequests is the std library stand-in for a framework's logger middleware.
+// logRequests logs the method, path and duration of each request.
 func logRequests(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

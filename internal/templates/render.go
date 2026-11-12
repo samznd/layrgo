@@ -11,25 +11,22 @@ import (
 //go:embed files
 var files embed.FS
 
-// Data is the input every template renders against. Named fields replace the
-// repeated positional %s arguments the generator used previously, so a template
-// referencing an unknown field fails loudly instead of silently misordering.
+// Data is what the templates render against.
 type Data struct {
 	Module    string
 	Framework string
 	ORM       string
 	Database  string
 
-	// Database-specific pieces, set by the config templates' caller.
+	// Set for the config templates only.
 	DriverImport  string
 	DriverName    string
 	DSNBlock      string
 	GormDialector string
 }
 
-// FeaturePackage is the package the sample endpoint is generated into.
-// Projects are packaged by feature: a feature's handler, service, store and
-// routes live together in internal/<feature>.
+// FeaturePackage is the package the sample endpoint goes into. A feature's
+// handler, service, store and routes all live in internal/<feature>.
 const FeaturePackage = "message"
 
 var (
@@ -37,8 +34,7 @@ var (
 	orms       = map[string]bool{"none": true, "gorm": true, "xorm": true, "ent": true}
 )
 
-// render executes the named embedded template. Missing keys are an error rather
-// than an empty string, which is what lets a bad stack fail at generation time.
+// render executes an embedded template. Missing keys are errors.
 func render(name string, data Data, extra ...string) (string, error) {
 	patterns := append([]string{"files/" + name}, extra...)
 
@@ -101,7 +97,7 @@ func StoreFile(module, orm string) (string, error) {
 		return "", fmt.Errorf("unsupported orm %q", orm)
 	}
 
-	// "none" and Ent both sit on database/sql; Ent's file carries an extra note.
+	// Ent uses database/sql too; its file just has an extra note.
 	name := map[string]string{
 		"none": "sql",
 		"gorm": "gorm",

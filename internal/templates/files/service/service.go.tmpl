@@ -2,10 +2,7 @@ package message
 
 import "context"
 
-// store is what this service needs from the data layer. It is
-// declared here, next to the code that uses it, and kept as small as that code
-// requires. Any type with a matching GetMessage method satisfies it, which is
-// what lets a test pass in a fake without a real database.
+// store is what the service needs from the data layer. Tests can pass a fake.
 type store interface {
 	GetMessage(ctx context.Context) (string, error)
 }
@@ -14,13 +11,11 @@ type Service struct {
 	store store
 }
 
-// NewService accepts an interface and returns a concrete type.
 func NewService(store store) *Service {
 	return &Service{store: store}
 }
 
-// GetMessage only forwards to the store for now. Business rules
-// (validation, combining several data sources, transactions) belong here.
+// GetMessage just reads from the store for now. Business rules go here.
 func (s *Service) GetMessage(ctx context.Context) (string, error) {
 	return s.store.GetMessage(ctx)
 }

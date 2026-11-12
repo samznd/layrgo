@@ -5,8 +5,7 @@ import (
 	"io"
 )
 
-// progressOut receives per-file progress. Tests point it at io.Discard so a
-// 60-combination table does not print thousands of lines.
+// progressOut is where per-file progress goes. Tests send it to io.Discard.
 var progressOut io.Writer = stdout{}
 
 type stdout struct{}

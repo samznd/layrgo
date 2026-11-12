@@ -26,8 +26,7 @@ func TestStoreFile_RawSQL(t *testing.T) {
 	}
 }
 
-// Previously this test could never fail. It now asserts the specific behavior:
-// the xorm repository must check the row count and propagate both error paths.
+// The xorm store must check the row count and return both errors.
 func TestStoreFile_XORM_ErrorPaths(t *testing.T) {
 	t.Parallel()
 
@@ -181,8 +180,7 @@ func TestDatabaseFile_RejectsUnknownDatabase(t *testing.T) {
 	}
 }
 
-// The stdlib framework exists so a generated project can run on net/http alone.
-// These assertions pin the two properties that make that true.
+// stdlib projects must run on net/http alone.
 func TestStdlibTemplates_NoThirdPartyRouter(t *testing.T) {
 	t.Parallel()
 
@@ -229,8 +227,7 @@ func TestStdlibRoutes_UsesMethodPattern(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Go 1.22 method patterns are the whole reason no router is needed. Without
-	// the "GET " prefix the route would match every method.
+	// Without the "GET " prefix the route would match every method.
 	if !strings.Contains(content, `"GET /api/v1/message"`) {
 		t.Errorf("stdlib routes should register a GET method pattern:\n%s", content)
 	}
@@ -247,8 +244,7 @@ func TestStdlibMain_SetsServerTimeouts(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// http.ListenAndServe has no timeouts, so an idle client can hold a
-	// connection open indefinitely. The generated server must set them.
+	// The generated server must set timeouts; http.ListenAndServe has none.
 	if strings.Contains(content, "http.ListenAndServe(") {
 		t.Errorf("stdlib main should use an explicit http.Server, not http.ListenAndServe:\n%s", content)
 	}
@@ -259,10 +255,7 @@ func TestStdlibMain_SetsServerTimeouts(t *testing.T) {
 	}
 }
 
-// TestTemplates_RenderGofmtCleanGo renders the feature package for every
-// framework and ORM and requires each file to be gofmt-clean Go, so a stray
-// blank line or dangling import in a template fails here rather than in a
-// user's editor.
+// Every generated file must be gofmt-clean Go.
 func TestTemplates_RenderGofmtCleanGo(t *testing.T) {
 	t.Parallel()
 
@@ -292,8 +285,7 @@ func TestTemplates_RenderGofmtCleanGo(t *testing.T) {
 	}
 }
 
-// TestFeaturePackage_SinglePackage pins the shape of the generated code: one
-// package per feature, a Store for data access, and no by-layer packages.
+// One package per feature, a Store, and no by-layer packages.
 func TestFeaturePackage_SinglePackage(t *testing.T) {
 	t.Parallel()
 

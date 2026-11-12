@@ -8,9 +8,7 @@ import (
 )
 
 // CreateFile writes content to path, creating parent directories as needed.
-//
-// It deliberately reports nothing to stdout: callers decide how (and whether) to
-// surface progress, which keeps this usable from tests and from quiet code paths.
+// It prints nothing; callers handle progress output.
 func CreateFile(filePath, content string) error {
 	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
 		return fmt.Errorf("create parent dir for %s: %w", filePath, err)

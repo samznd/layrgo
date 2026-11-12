@@ -5,8 +5,7 @@ import (
 	"database/sql"
 )
 
-// Store is a concrete type. The service that uses it declares the
-// interface it needs, so there is no interface here to keep in sync.
+// Store is the data access for messages.
 type Store struct {
 	db *sql.DB
 }

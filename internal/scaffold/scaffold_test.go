@@ -15,8 +15,7 @@ import (
 	"github.com/samznd/layrgo/internal/scaffold"
 )
 
-// TestMain silences per-file progress output so the 60-combination table does
-// not flood the test log. This is what SetProgressOutput exists for.
+// TestMain turns off per-file progress output.
 func TestMain(m *testing.M) {
 	restore := scaffold.SetProgressOutput(io.Discard)
 	code := m.Run()
@@ -59,9 +58,7 @@ func TestScaffold_GinPostgresNoORM(t *testing.T) {
 	}
 }
 
-// TestScaffold_ComposeMatchesDatabase covers every database in both the canonical
-// and lowercase spelling. The lowercase cases are the regression: docker-compose
-// used to fall through to Postgres whenever the caller passed "sqlite"/"mysql".
+// Lowercase names used to fall through to Postgres in docker-compose.
 func TestScaffold_ComposeMatchesDatabase(t *testing.T) {
 	t.Parallel()
 
@@ -104,9 +101,7 @@ func TestScaffold_ComposeMatchesDatabase(t *testing.T) {
 	}
 }
 
-// TestScaffold_AllStacksWriteFiles exercises every framework x database x ORM
-// combination at the file-generation level, so an unhandled combination surfaces
-// as an empty template rather than at a user's first build.
+// Every framework x database x ORM combination must write its files.
 func TestScaffold_AllStacksWriteFiles(t *testing.T) {
 	t.Parallel()
 
@@ -152,7 +147,7 @@ func TestScaffold_AllStacksWriteFiles(t *testing.T) {
 						}
 					}
 
-					// The by-layer packages must be gone, not just unused.
+					// The old by-layer packages must not come back.
 					for _, rel := range []string{"handlers", "services", "repositories", "routes", "models"} {
 						if _, err := os.Stat(filepath.Join(cfg.ProjectPath, "internal", rel)); err == nil {
 							t.Errorf("internal/%s should not be generated", rel)
@@ -164,9 +159,8 @@ func TestScaffold_AllStacksWriteFiles(t *testing.T) {
 	}
 }
 
-// TestScaffold_RunsWithoutDotEnv is the regression for the Docker path: the image
-// ships only the binary, so a generated app must start from real environment
-// variables with no .env on disk.
+// The Docker image has no .env, so the app must start from environment
+// variables alone.
 func TestScaffold_RunsWithoutDotEnv(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")

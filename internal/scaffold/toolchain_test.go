@@ -19,12 +19,11 @@ func TestCheckFrameworkToolchain(t *testing.T) {
 		{"stdlib on go1.25 is allowed", "stdlib", "go1.25.1", false},
 		{"stdlib is matched case-insensitively", "StdLib", "go1.21.0", true},
 
-		// Every other framework brings its own router, so the Go version is
-		// irrelevant and must never be blocked on.
+		// Other frameworks bring their own router, so the Go version doesn't matter.
 		{"chi on go1.21 is allowed", "Chi", "go1.21.0", false},
 		{"gin on go1.20 is allowed", "Gin", "go1.20", false},
 
-		// An unparseable version is not evidence of an old toolchain.
+		// Unparseable versions are let through.
 		{"devel toolchain is not blocked", "stdlib", "devel +abc1234", false},
 		{"empty version is not blocked", "stdlib", "", false},
 		{"go2 is not blocked", "stdlib", "go2.0.0", false},

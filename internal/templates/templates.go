@@ -14,8 +14,7 @@ type FeatureConfig struct {
 	Framework   string
 	ORM         string
 
-	// OnFileCreated, when set, is called with each generated file's relative
-	// path. Keeps this package free of any opinion about progress output.
+	// OnFileCreated is called with each generated file's relative path, if set.
 	OnFileCreated func(rel string)
 }
 

@@ -115,8 +115,7 @@ func TestConfigFromFlags_CanonicalizesCase(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Lowercase input must reach the scaffolder in canonical form, so every
-	// downstream switch sees one known spelling.
+	// Lowercase input should come out in the canonical spelling.
 	if cfg.Framework != "Gin" || cfg.Database != "SQLite" || cfg.ORM != "GORM" {
 		t.Fatalf("not canonicalized: %+v", cfg)
 	}
@@ -157,12 +156,7 @@ func TestEnsureTargetDir(t *testing.T) {
 	})
 }
 
-// The stale --framework help text shipped in v1.2.0 because the flag
-// description, the validation list and the wizard options were three separate
-// literals and only two were updated. They now share Frameworks; this test
-// asserts the list stays in sync with what the template layer can actually
-// render, so a framework can never be offered without templates behind it (or
-// vice versa).
+// Every framework we offer must have templates behind it.
 func TestFrameworks_MatchRenderableTemplates(t *testing.T) {
 	t.Parallel()
 

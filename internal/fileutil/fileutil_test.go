@@ -28,9 +28,7 @@ func TestCreateFile_CreatesParentDirs(t *testing.T) {
 func TestCreateFile_NoParentDir(t *testing.T) {
 	t.Parallel()
 
-	// A bare filename has no directory component; filepath.Dir returns ".",
-	// which must not be treated as an error. The hand-rolled dirOf this
-	// replaced returned "." too, but via a manual separator scan.
+	// A bare filename has no directory part; filepath.Dir returns ".".
 	dir := t.TempDir()
 	cwd, err := os.Getwd()
 	if err != nil {

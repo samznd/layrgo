@@ -12,8 +12,7 @@ import (
 	"github.com/samznd/layrgo/internal/templates"
 )
 
-// Code is packaged by feature, so the sample endpoint gets one directory
-// rather than one per technical role.
+// One directory per feature.
 var projectDirectories = []string{
 	"cmd", "config", "internal", "internal/middleware",
 	"internal/" + templates.FeaturePackage, "pkg/utils", "scripts",
@@ -28,9 +27,8 @@ func Scaffold(cfg Config) error {
 	return installDependencies(cfg)
 }
 
-// WriteFiles generates the project's files and directories without touching the
-// network. Separated from Scaffold so tests can cover every stack combination
-// without running "go get" for each one.
+// WriteFiles generates the files and directories without touching the
+// network, so tests can cover every stack without running "go get".
 func WriteFiles(cfg Config) error {
 	if cfg.ORM == "" {
 		cfg.ORM = "none"
@@ -56,8 +54,7 @@ func WriteFiles(cfg Config) error {
 		return err
 	}
 
-	// Ordered slice rather than a map: generation order is then deterministic,
-	// so progress output and any failure are reproducible run to run.
+	// A slice, not a map, so files are always written in the same order.
 	files := []struct {
 		rel     string
 		content string
@@ -102,11 +99,9 @@ func validateConfig(cfg Config) error {
 	return nil
 }
 
-// minStdlibRoutingGo is the first Go release whose http.ServeMux understands
-// method-and-wildcard patterns ("GET /path"). Before it, ServeMux treats the
-// whole string as a literal path: the generated project still compiles and
-// runs, but every request 404s. That silent failure is why this is checked
-// up front rather than left to the user to discover.
+// minStdlibRoutingGo is the first Go minor version where http.ServeMux
+// understands "GET /path" patterns. Older versions treat the whole string as a
+// path, so the project builds and runs but every request 404s.
 const minStdlibRoutingGo = 22
 
 // checkFrameworkToolchain rejects a stack the local toolchain cannot run.
@@ -117,8 +112,7 @@ func checkFrameworkToolchain(framework, goVersion string) error {
 	}
 	minor, ok := goMinor(goVersion)
 	if !ok {
-		// An unparseable version is not evidence of an old toolchain, so do not
-		// block on it; a genuinely old one fails loudly at build time instead.
+		// Can't parse it (a devel build?), so don't block.
 		return nil
 	}
 	if minor < minStdlibRoutingGo {
@@ -179,9 +173,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// InitialEnv loads .env for local development. A missing .env is not an error:
-// in Docker and other deployments configuration arrives as real environment
-// variables, which already take precedence over the file.
+// InitialEnv loads .env for local development. A missing file is fine: in
+// Docker the config comes from real environment variables.
 func InitialEnv() error {
 	if err := godotenv.Load(); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {

@@ -19,9 +19,8 @@ func buildInfo(mainVersion, revision, time string) *debug.BuildInfo {
 	return bi
 }
 
-// moduleZipBuildInfo is what `go install <module>@<version>` produces: a real
-// module version and no vcs.* settings at all, because a module zip contains no
-// repository.
+// moduleZipBuildInfo is what `go install <module>@<version>` produces: a module
+// version and no vcs settings.
 func moduleZipBuildInfo(mainVersion string) *debug.BuildInfo {
 	bi := &debug.BuildInfo{}
 	bi.Main.Version = mainVersion
@@ -31,9 +30,7 @@ func moduleZipBuildInfo(mainVersion string) *debug.BuildInfo {
 func TestResolveVersion_LdflagsWin(t *testing.T) {
 	t.Parallel()
 
-	// The Makefile and GoReleaser path: build info is present and must be
-	// ignored entirely, otherwise `make build` would start reporting the module
-	// version instead of the git-describe version.
+	// Makefile and GoReleaser builds: ldflags win and build info is ignored.
 	bi := buildInfo("v1.1.0", "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", "2026-01-01T00:00:00Z")
 
 	version, commit, date := resolveVersion("v1.2.0-3-gabc1234", "abc1234", "2026-11-09T17:19:53Z", bi)
@@ -52,9 +49,7 @@ func TestResolveVersion_LdflagsWin(t *testing.T) {
 func TestResolveVersion_GoInstallModuleZip(t *testing.T) {
 	t.Parallel()
 
-	// The `go install github.com/samznd/layrgo/cmd/layrgo@v1.1.0` path: no
-	// linker flags, and a module zip that carries no vcs.* settings. The module
-	// version is the only real signal, and it must be used.
+	// go install ...@v1.1.0: no ldflags and no vcs info, only the module version.
 	version, commit, date := resolveVersion("dev", "none", "unknown", moduleZipBuildInfo("v1.1.0"))
 
 	if version != "v1.1.0" {
@@ -68,8 +63,7 @@ func TestResolveVersion_GoInstallModuleZip(t *testing.T) {
 func TestResolveVersion_GoInstallVCSFallback(t *testing.T) {
 	t.Parallel()
 
-	// A build that has both signals (e.g. a tagged checkout built in place by a
-	// tool that resolves the module version): every field comes from build info.
+	// Both signals present: every field comes from build info.
 	bi := buildInfo("v1.1.0", "dee514b0000000000000000000000000000000ab", "2026-11-09T17:19:53Z")
 
 	version, commit, date := resolveVersion("dev", "none", "unknown", bi)
@@ -101,9 +95,7 @@ func TestResolveVersion_MarksDirtyWorkingTree(t *testing.T) {
 func TestResolveVersion_LocalDevelBuildKeepsDev(t *testing.T) {
 	t.Parallel()
 
-	// A plain `go build` from a working tree: the toolchain reports "(devel)",
-	// which is no more informative than "dev", so the sentinel is kept. The
-	// commit and date are still real and must be filled in.
+	// go build from a checkout: version is "(devel)", commit and date are real.
 	bi := buildInfo("(devel)", "cafebabecafebabecafebabecafebabecafebabe", "2026-11-09T12:00:00Z")
 
 	version, commit, date := resolveVersion("dev", "none", "unknown", bi)
@@ -132,8 +124,7 @@ func TestResolveVersion_NoBuildInfoKeepsSentinels(t *testing.T) {
 func TestResolveVersion_MissingVCSSettingsKeepSentinels(t *testing.T) {
 	t.Parallel()
 
-	// Build info exists but carries no VCS data — what happens when the module
-	// is built outside a git checkout, or with -buildvcs=false.
+	// Build info without VCS data, e.g. built outside git or with -buildvcs=false.
 	version, commit, date := resolveVersion("dev", "none", "unknown", buildInfo("v1.1.0", "", ""))
 
 	if version != "v1.1.0" {
@@ -150,8 +141,7 @@ func TestResolveVersion_MissingVCSSettingsKeepSentinels(t *testing.T) {
 func TestResolveVersion_NormalizesGoReleaserVersion(t *testing.T) {
 	t.Parallel()
 
-	// GoReleaser stamps {{.Version}}, which has no leading "v". Both build
-	// paths must print the same shape.
+	// GoReleaser stamps the version without the leading "v".
 	version, _, _ := resolveVersion("1.1.0", "dee514b", "2026-11-09T17:19:53Z", nil)
 
 	if version != "v1.1.0" {
@@ -190,8 +180,7 @@ func TestFormatVersion(t *testing.T) {
 			want: "layrgo v1.1.0 (commit: dee514b, built: 2026-11-09T17:19:53Z)",
 		},
 		{
-			// The module-zip install: a real version and nothing else. Printing
-			// "(commit: none, built: unknown)" here would be pure noise.
+			// go install build: a version and nothing else.
 			name:    "module version only omits the parenthetical",
 			version: "v1.1.0", commit: "none", date: "unknown",
 			want: "layrgo v1.1.0",

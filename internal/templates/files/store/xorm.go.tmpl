@@ -7,8 +7,7 @@ import (
 	"xorm.io/xorm"
 )
 
-// Store is a concrete type. The service that uses it declares the
-// interface it needs, so there is no interface here to keep in sync.
+// Store is the data access for messages.
 type Store struct {
 	engine *xorm.Engine
 }

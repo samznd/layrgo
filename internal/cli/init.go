@@ -48,8 +48,7 @@ Scaffolding refuses to write into a non-empty directory; pass --force to overrid
 			return err
 		}
 
-		// Only a directory we created ourselves may be cleaned up on failure;
-		// never remove something that was already there.
+		// Only clean up a directory we created.
 		_, statErr := os.Stat(cfg.ProjectPath)
 		weCreatedDir := os.IsNotExist(statErr)
 
@@ -143,14 +142,12 @@ func configFromFlags(name string) (scaffold.Config, error) {
 	return cfg, nil
 }
 
-// canonicalChoice validates value case-insensitively and returns the canonical
-// spelling from allowed. Normalizing here, at the input boundary, means everything
-// downstream can compare against one known form instead of re-lowering per call site.
-// Frameworks is the single source of truth for the supported web frameworks:
-// the --framework help text, the flag validation and the interactive wizard all
-// read it, so adding a framework cannot leave one of them behind.
+// Frameworks is the list of supported frameworks. The flag help, validation
+// and the wizard all read it.
 var Frameworks = []string{"Fiber", "Gin", "Echo", "Chi", "Iris", "stdlib"}
 
+// canonicalChoice matches value case-insensitively and returns the spelling
+// from allowed.
 func canonicalChoice(name, value string, allowed []string) (string, error) {
 	for _, a := range allowed {
 		if strings.EqualFold(value, a) {
@@ -210,9 +207,8 @@ func cancelErr(err error) error {
 	return err
 }
 
-// ensureTargetDir refuses to scaffold into a directory that already has contents,
-// so a mistyped name can never clobber an existing project. A missing directory is
-// fine (we create it next); force skips the check.
+// ensureTargetDir refuses a non-empty directory unless force is set, so a
+// mistyped name can't overwrite an existing project.
 func ensureTargetDir(path string, force bool) error {
 	if force {
 		return nil
@@ -231,9 +227,8 @@ func ensureTargetDir(path string, force bool) error {
 	return nil
 }
 
-// validateProjectName rejects names that are not usable as a Go module path or that
-// would place the project outside the current directory. Checked before any
-// filesystem work so a bad name cannot leave a half-built project behind.
+// validateProjectName rejects names that can't be a Go module path or that
+// would put the project outside the current directory.
 func validateProjectName(name string) error {
 	if strings.TrimSpace(name) == "" {
 		return fmt.Errorf("project name is required")
