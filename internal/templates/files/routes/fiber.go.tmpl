@@ -1,11 +1,9 @@
-package routes
+package message
 
 import (
-	"{{.Module}}/internal/handlers"
-
 	"github.com/gofiber/fiber/v3"
 )
 
-func SetupRoutes(api fiber.Router, h *handlers.Handler) {
+func SetupRoutes(api fiber.Router, h *Handler) {
 	api.Get("/message", h.Get)
 }

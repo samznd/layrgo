@@ -6,13 +6,13 @@
 
 **Scaffold production-ready Go web APIs in seconds.**
 
-Layrgo is a CLI that generates a complete, compilable Go web project — clean architecture layers, dependency injection, `.env` config, Docker, and pinned dependencies — so you start building features instead of wiring boilerplate.
+Layrgo is a CLI that generates a complete, compilable Go web project — handler, service and data layers already wired together, dependency injection, `.env` config, Docker, and pinned dependencies — so you start building features instead of wiring boilerplate.
 
 ## Why Layrgo?
 
 | Without Layrgo                          | With Layrgo                                  |
 | --------------------------------------- | -------------------------------------------- |
-| Manually wire handlers, services, repos | Pre-wired `handler → service → repository`   |
+| Manually wire handlers, services, stores | Pre-wired `handler → service → store`       |
 | Pick framework + DB + ORM from scratch  | Choose your stack interactively or via flags |
 | Write Dockerfile and compose yourself   | Docker + compose generated per database      |
 | Hope the layout is idiomatic            | Standard Go project layout out of the box    |
@@ -37,7 +37,7 @@ layrgo init myapi \
 cd myapi
 go run ./cmd
 curl http://localhost:3000/api/v1/message
-# {"message":"data from repository"}
+# {"message":"data from the store"}
 ```
 
 ### Dependency-free routing (`net/http`)
@@ -52,7 +52,7 @@ cd myapi
 cat go.mod        # godotenv + the SQLite driver. No router.
 go run ./cmd
 
-curl      http://localhost:3000/api/v1/message   # 200 {"message":"data from repository"}
+curl      http://localhost:3000/api/v1/message   # 200 {"message":"data from the store"}
 curl -X POST http://localhost:3000/api/v1/message # 405: the GET pattern routes by method
 ```
 
@@ -99,17 +99,20 @@ layrgo version
 
 ## Generated project layout
 
+Layrgo packages code **by feature**: everything about one feature lives
+in one package, so a change to it touches one directory.
+
 ```
 your-project/
 ├── cmd/main.go              # Entry point with DI wiring
 ├── config/database.go       # DB connection for your stack
 ├── internal/
-│   ├── handlers/            # HTTP layer
-│   ├── services/            # Business logic
-│   ├── repositories/        # Data access
-│   ├── routes/              # Route registration
-│   ├── middleware/          # Ready for your middleware
-│   └── models/              # Ready for your models
+│   ├── message/             # One package per feature
+│   │   ├── handler.go       # HTTP layer
+│   │   ├── service.go       # Business logic
+│   │   ├── store.go         # Data access
+│   │   └── routes.go        # Route registration
+│   └── middleware/          # Ready for your middleware
 ├── pkg/utils/               # Env loader
 ├── Dockerfile
 ├── docker-compose.yml
@@ -117,6 +120,14 @@ your-project/
 ├── .env.example
 └── .env                     # gitignored; local overrides
 ```
+
+To add a feature, copy `internal/message` to `internal/<name>` and wire it in
+`cmd/main.go`.
+
+Interfaces are declared by the code that uses them, and constructors return
+concrete types ("accept interfaces, return structs"). The service declares the
+one-method `store` interface it needs; `NewStore` returns a `*Store`. A test can
+hand the service a fake store without a database.
 
 ## Commands
 

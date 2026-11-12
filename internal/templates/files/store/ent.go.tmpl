@@ -1,0 +1,27 @@
+package message
+
+// Ent schema code is project-specific: run 'ent init' to generate it, then swap
+// this sql.DB-backed implementation for the generated Ent client.
+
+import (
+	"context"
+	"database/sql"
+)
+
+// Store is a concrete type. The service that uses it declares the
+// interface it needs, so there is no interface here to keep in sync.
+type Store struct {
+	db *sql.DB
+}
+
+func NewStore(db *sql.DB) *Store {
+	return &Store{db: db}
+}
+
+func (s *Store) GetMessage(ctx context.Context) (string, error) {
+	var message string
+	if err := s.db.QueryRowContext(ctx, "SELECT 'data from the store'").Scan(&message); err != nil {
+		return "", err
+	}
+	return message, nil
+}

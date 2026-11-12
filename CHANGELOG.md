@@ -3,6 +3,29 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
+## Unreleased
+
+### Changed
+- **Generated projects are packaged by feature instead of by layer.** The sample
+  endpoint now lives in one package, `internal/message`, holding `handler.go`,
+  `service.go`, `store.go` and `routes.go`. The previous `internal/handlers`,
+  `internal/services`, `internal/repositories`, `internal/routes` and the empty
+  `internal/models` are no longer generated. Projects created by earlier versions
+  are unaffected; only the output of `layrgo init` changes.
+- **The repository is now a `Store`.** `NewRepository` became `NewStore`, in
+  `store.go`. The sample response changed with it, from
+  `{"message":"data from repository"}` to `{"message":"data from the store"}`.
+- **Interfaces are declared where they are used, and constructors return concrete
+  types.** Previously `Repository` and `Service` were interfaces defined beside
+  their only implementation, and their constructors returned the interface. Now
+  the service declares the one-method `store` interface it needs, the handler
+  declares what it needs from the service, and `NewStore`/`NewService` return
+  `*Store`/`*Service`.
+
+### Added
+- Tests render the feature package for every framework and ORM and require the
+  output to be gofmt-clean Go.
+
 ## v1.2.1 — 2026-11-09
 
 ### Fixed

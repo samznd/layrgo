@@ -1,18 +1,24 @@
-package handlers
+package message
 
 import (
+	"context"
 	"net/http"
-
-	"{{.Module}}/internal/services"
 
 	"github.com/gin-gonic/gin"
 )
 
-type Handler struct {
-	service services.Service
+// messageService is what this handler needs from the service layer. Go
+// interfaces are satisfied implicitly, so the consumer declares them: the
+// handler depends on one small behaviour, not on a concrete service type.
+type messageService interface {
+	GetMessage(ctx context.Context) (string, error)
 }
 
-func NewHandler(s services.Service) *Handler {
+type Handler struct {
+	service messageService
+}
+
+func NewHandler(s messageService) *Handler {
 	return &Handler{service: s}
 }
 

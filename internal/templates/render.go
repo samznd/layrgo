@@ -27,6 +27,11 @@ type Data struct {
 	GormDialector string
 }
 
+// FeaturePackage is the package the sample endpoint is generated into.
+// Projects are packaged by feature: a feature's handler, service, store and
+// routes live together in internal/<feature>.
+const FeaturePackage = "message"
+
 var (
 	frameworks = map[string]bool{"fiber": true, "gin": true, "echo": true, "chi": true, "iris": true, "stdlib": true}
 	orms       = map[string]bool{"none": true, "gorm": true, "xorm": true, "ent": true}
@@ -66,7 +71,7 @@ func MainFile(module, framework string) (string, error) {
 	return render("main/"+framework+".go.tmpl", Data{Module: module, Framework: framework}, "files/main/di.tmpl")
 }
 
-// HandlerFile renders internal/handlers/handler.go.
+// HandlerFile renders the handler file.
 func HandlerFile(module, framework string) (string, error) {
 	framework = strings.ToLower(framework)
 	if !frameworks[framework] {
@@ -75,7 +80,7 @@ func HandlerFile(module, framework string) (string, error) {
 	return render("handler/"+framework+".go.tmpl", Data{Module: module, Framework: framework})
 }
 
-// RoutesFile renders internal/routes/routes.go.
+// RoutesFile renders the routes file.
 func RoutesFile(module, framework string) (string, error) {
 	framework = strings.ToLower(framework)
 	if !frameworks[framework] {
@@ -84,13 +89,13 @@ func RoutesFile(module, framework string) (string, error) {
 	return render("routes/"+framework+".go.tmpl", Data{Module: module, Framework: framework})
 }
 
-// ServiceFile renders internal/services/service.go.
+// ServiceFile renders the service file.
 func ServiceFile(module string) (string, error) {
 	return render("service/service.go.tmpl", Data{Module: module})
 }
 
-// RepositoryFile renders internal/repositories/repository.go for the given ORM.
-func RepositoryFile(module, orm string) (string, error) {
+// StoreFile renders the data-access file for the given ORM.
+func StoreFile(module, orm string) (string, error) {
 	orm = strings.ToLower(orm)
 	if !orms[orm] {
 		return "", fmt.Errorf("unsupported orm %q", orm)
@@ -104,5 +109,5 @@ func RepositoryFile(module, orm string) (string, error) {
 		"ent":  "ent",
 	}[orm]
 
-	return render("repository/"+name+".go.tmpl", Data{Module: module, ORM: orm})
+	return render("store/"+name+".go.tmpl", Data{Module: module, ORM: orm})
 }

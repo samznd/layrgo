@@ -1,0 +1,27 @@
+package message
+
+import (
+	"context"
+
+	"gorm.io/gorm"
+)
+
+// Store is a concrete type. The service that uses it declares the
+// interface it needs, so there is no interface here to keep in sync.
+type Store struct {
+	db *gorm.DB
+}
+
+func NewStore(db *gorm.DB) *Store {
+	return &Store{db: db}
+}
+
+func (s *Store) GetMessage(ctx context.Context) (string, error) {
+	var result struct {
+		Message string
+	}
+	if err := s.db.WithContext(ctx).Raw("SELECT 'data from the store' AS message").Scan(&result).Error; err != nil {
+		return "", err
+	}
+	return result.Message, nil
+}

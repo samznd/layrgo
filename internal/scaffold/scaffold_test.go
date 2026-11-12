@@ -47,7 +47,7 @@ func TestScaffold_GinPostgresNoORM(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read main.go: %v", err)
 	}
-	if !strings.Contains(string(content), "handlers.NewHandler") {
+	if !strings.Contains(string(content), "message.NewHandler") {
 		t.Error("main.go missing dependency injection wiring")
 	}
 
@@ -136,9 +136,10 @@ func TestScaffold_AllStacksWriteFiles(t *testing.T) {
 					for _, rel := range []string{
 						filepath.Join("cmd", "main.go"),
 						filepath.Join("config", "database.go"),
-						filepath.Join("internal", "handlers", "handler.go"),
-						filepath.Join("internal", "routes", "routes.go"),
-						filepath.Join("internal", "repositories", "repository.go"),
+						filepath.Join("internal", "message", "handler.go"),
+						filepath.Join("internal", "message", "service.go"),
+						filepath.Join("internal", "message", "store.go"),
+						filepath.Join("internal", "message", "routes.go"),
 						".gitignore",
 					} {
 						path := filepath.Join(cfg.ProjectPath, rel)
@@ -148,6 +149,13 @@ func TestScaffold_AllStacksWriteFiles(t *testing.T) {
 						}
 						if info.Size() == 0 {
 							t.Errorf("%s is empty", rel)
+						}
+					}
+
+					// The by-layer packages must be gone, not just unused.
+					for _, rel := range []string{"handlers", "services", "repositories", "routes", "models"} {
+						if _, err := os.Stat(filepath.Join(cfg.ProjectPath, "internal", rel)); err == nil {
+							t.Errorf("internal/%s should not be generated", rel)
 						}
 					}
 				})

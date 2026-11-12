@@ -7,8 +7,8 @@ import (
 	"github.com/samznd/layrgo/internal/fileutil"
 )
 
-// LayerConfig holds inputs for internal layer generation.
-type LayerConfig struct {
+// FeatureConfig holds the inputs for generating the sample feature package.
+type FeatureConfig struct {
 	ProjectPath string
 	ProjectName string
 	Framework   string
@@ -19,9 +19,10 @@ type LayerConfig struct {
 	OnFileCreated func(rel string)
 }
 
-// WriteLayers generates repository, service, handler, and route files.
-func WriteLayers(cfg LayerConfig) error {
-	repository, err := RepositoryFile(cfg.ProjectName, cfg.ORM)
+// WriteFeature generates the sample feature package: its store, service,
+// handler, and route files.
+func WriteFeature(cfg FeatureConfig) error {
+	store, err := StoreFile(cfg.ProjectName, cfg.ORM)
 	if err != nil {
 		return err
 	}
@@ -42,19 +43,19 @@ func WriteLayers(cfg LayerConfig) error {
 		rel     string
 		content string
 	}{
-		{"repositories/repository.go", repository},
-		{"services/service.go", service},
-		{"handlers/handler.go", handler},
-		{"routes/routes.go", routes},
+		{"store.go", store},
+		{"service.go", service},
+		{"handler.go", handler},
+		{"routes.go", routes},
 	}
 
 	for _, f := range files {
-		path := filepath.Join(cfg.ProjectPath, "internal", f.rel)
+		path := filepath.Join(cfg.ProjectPath, "internal", FeaturePackage, f.rel)
 		if err := fileutil.CreateFile(path, f.content); err != nil {
 			return fmt.Errorf("create %s: %w", f.rel, err)
 		}
 		if cfg.OnFileCreated != nil {
-			cfg.OnFileCreated(filepath.Join("internal", f.rel))
+			cfg.OnFileCreated(filepath.Join("internal", FeaturePackage, f.rel))
 		}
 	}
 	return nil

@@ -7,10 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"{{.Module}}/config"
-	"{{.Module}}/internal/handlers"
-	"{{.Module}}/internal/repositories"
-	"{{.Module}}/internal/routes"
-	"{{.Module}}/internal/services"
+	"{{.Module}}/internal/message"
 	"{{.Module}}/pkg/utils"
 )
 
@@ -28,7 +25,7 @@ func main() {
 
 {{template "di" .}}
 
-	routes.SetupRoutes(r, handler)
+	message.SetupRoutes(r, handler)
 
 	log.Println("🚀 Chi server is running on http://localhost:3000")
 	if err := http.ListenAndServe(":3000", r); err != nil {

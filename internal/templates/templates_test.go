@@ -1,21 +1,22 @@
 package templates_test
 
 import (
+	"go/format"
 	"strings"
 	"testing"
 
 	"github.com/samznd/layrgo/internal/templates"
 )
 
-func TestRepositoryFile_RawSQL(t *testing.T) {
+func TestStoreFile_RawSQL(t *testing.T) {
 	t.Parallel()
 
-	content, err := templates.RepositoryFile("myapp", "none")
+	content, err := templates.StoreFile("myapp", "none")
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, want := range []string{
-		"func NewRepository(db *sql.DB)",
+		"func NewStore(db *sql.DB)",
 		"GetMessage(ctx context.Context) (string, error)",
 		"QueryRowContext(ctx,",
 	} {
@@ -27,10 +28,10 @@ func TestRepositoryFile_RawSQL(t *testing.T) {
 
 // Previously this test could never fail. It now asserts the specific behavior:
 // the xorm repository must check the row count and propagate both error paths.
-func TestRepositoryFile_XORM_ErrorPaths(t *testing.T) {
+func TestStoreFile_XORM_ErrorPaths(t *testing.T) {
 	t.Parallel()
 
-	content, err := templates.RepositoryFile("myapp", "xorm")
+	content, err := templates.StoreFile("myapp", "xorm")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,10 +47,10 @@ func TestRepositoryFile_XORM_ErrorPaths(t *testing.T) {
 	}
 }
 
-func TestRepositoryFile_RejectsUnknownORM(t *testing.T) {
+func TestStoreFile_RejectsUnknownORM(t *testing.T) {
 	t.Parallel()
 
-	if _, err := templates.RepositoryFile("myapp", "sqlboiler"); err == nil {
+	if _, err := templates.StoreFile("myapp", "sqlboiler"); err == nil {
 		t.Fatal("expected an error for an unsupported ORM")
 	}
 }
@@ -100,7 +101,7 @@ func TestHandlerFile_AllFrameworks(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", fw, err)
 		}
-		if !strings.Contains(content, "NewHandler(s services.Service)") {
+		if !strings.Contains(content, "NewHandler(s messageService)") {
 			t.Errorf("%s handler missing NewHandler constructor", fw)
 		}
 		// Handlers must not leak internal error detail to clients.
@@ -130,9 +131,9 @@ func TestMainFile_InjectsDependencies(t *testing.T) {
 			t.Fatalf("%s: %v", fw, err)
 		}
 		for _, want := range []string{
-			"repo := repositories.NewRepository(config.DB)",
-			"service := services.NewService(repo)",
-			"handler := handlers.NewHandler(service)",
+			"store := message.NewStore(config.DB)",
+			"service := message.NewService(store)",
+			"handler := message.NewHandler(service)",
 			"if err := config.Connect(); err != nil",
 			"defer config.Close()",
 		} {
@@ -254,6 +255,86 @@ func TestStdlibMain_SetsServerTimeouts(t *testing.T) {
 	for _, field := range []string{"ReadHeaderTimeout", "ReadTimeout", "WriteTimeout", "IdleTimeout"} {
 		if !strings.Contains(content, field) {
 			t.Errorf("stdlib main should set %s:\n%s", field, content)
+		}
+	}
+}
+
+// TestTemplates_RenderGofmtCleanGo renders the feature package for every
+// framework and ORM and requires each file to be gofmt-clean Go, so a stray
+// blank line or dangling import in a template fails here rather than in a
+// user's editor.
+func TestTemplates_RenderGofmtCleanGo(t *testing.T) {
+	t.Parallel()
+
+	for _, fw := range []string{"fiber", "gin", "echo", "chi", "iris", "stdlib"} {
+		files := map[string]func() (string, error){
+			"handler": func() (string, error) { return templates.HandlerFile("myapp", fw) },
+			"routes":  func() (string, error) { return templates.RoutesFile("myapp", fw) },
+			"service": func() (string, error) { return templates.ServiceFile("myapp") },
+		}
+		for _, orm := range []string{"none", "gorm", "xorm", "ent"} {
+			files["store-"+orm] = func() (string, error) { return templates.StoreFile("myapp", orm) }
+		}
+		for name, renderFile := range files {
+			content, err := renderFile()
+			if err != nil {
+				t.Fatalf("%s/%s: %v", fw, name, err)
+			}
+			formatted, err := format.Source([]byte(content))
+			if err != nil {
+				t.Errorf("%s/%s is not valid Go: %v\n%s", fw, name, err, content)
+				continue
+			}
+			if string(formatted) != content {
+				t.Errorf("%s/%s is not gofmt-clean:\n%s", fw, name, content)
+			}
+		}
+	}
+}
+
+// TestFeaturePackage_SinglePackage pins the shape of the generated code: one
+// package per feature, a Store for data access, and no by-layer packages.
+func TestFeaturePackage_SinglePackage(t *testing.T) {
+	t.Parallel()
+
+	for _, fw := range []string{"fiber", "gin", "echo", "chi", "iris", "stdlib"} {
+		mainFile, err := templates.MainFile("myapp", fw)
+		if err != nil {
+			t.Fatalf("%s: %v", fw, err)
+		}
+		for _, want := range []string{
+			`"myapp/internal/message"`,
+			"store := message.NewStore(config.DB)",
+			"service := message.NewService(store)",
+			"handler := message.NewHandler(service)",
+			"message.SetupRoutes(",
+		} {
+			if !strings.Contains(mainFile, want) {
+				t.Errorf("%s main.go missing %q", fw, want)
+			}
+		}
+		for _, unwanted := range []string{"internal/handlers", "internal/services", "internal/repositories", "internal/routes"} {
+			if strings.Contains(mainFile, unwanted) {
+				t.Errorf("%s main.go should not import %q", fw, unwanted)
+			}
+		}
+
+		routes, err := templates.RoutesFile("myapp", fw)
+		if err != nil {
+			t.Fatalf("%s: %v", fw, err)
+		}
+		if !strings.HasPrefix(routes, "package message\n") || strings.Contains(routes, "handlers.") {
+			t.Errorf("%s routes.go should be in package message with no handlers import:\n%s", fw, routes)
+		}
+	}
+
+	for _, orm := range []string{"none", "gorm", "xorm", "ent"} {
+		store, err := templates.StoreFile("myapp", orm)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(store, "type Store struct") || strings.Contains(store, "Repository") {
+			t.Errorf("%s: expected a Store and no Repository:\n%s", orm, store)
 		}
 	}
 }

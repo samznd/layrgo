@@ -1,12 +1,10 @@
-package routes
+package message
 
 import (
-	"{{.Module}}/internal/handlers"
-
 	"github.com/go-chi/chi/v5"
 )
 
-func SetupRoutes(r chi.Router, h *handlers.Handler) {
+func SetupRoutes(r chi.Router, h *Handler) {
 	r.Route("/api/v1", func(api chi.Router) {
 		api.Get("/message", h.Get)
 	})

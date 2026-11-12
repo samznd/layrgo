@@ -12,10 +12,11 @@ import (
 	"github.com/samznd/layrgo/internal/templates"
 )
 
+// Code is packaged by feature, so the sample endpoint gets one directory
+// rather than one per technical role.
 var projectDirectories = []string{
 	"cmd", "config", "internal", "internal/middleware",
-	"internal/models", "internal/repositories", "internal/services",
-	"internal/handlers", "internal/routes", "pkg/utils", "scripts",
+	"internal/" + templates.FeaturePackage, "pkg/utils", "scripts",
 }
 
 // Scaffold generates a complete project at cfg.ProjectPath and installs its
@@ -79,7 +80,7 @@ func WriteFiles(cfg Config) error {
 		logCreated(f.rel)
 	}
 
-	return templates.WriteLayers(templates.LayerConfig{
+	return templates.WriteFeature(templates.FeatureConfig{
 		ProjectPath:   cfg.ProjectPath,
 		ProjectName:   cfg.ProjectName,
 		Framework:     cfg.Framework,

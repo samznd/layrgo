@@ -1,11 +1,9 @@
-package routes
+package message
 
 import (
-	"{{.Module}}/internal/handlers"
-
 	"github.com/labstack/echo/v4"
 )
 
-func SetupRoutes(api *echo.Group, h *handlers.Handler) {
+func SetupRoutes(api *echo.Group, h *Handler) {
 	api.GET("/message", h.Get)
 }

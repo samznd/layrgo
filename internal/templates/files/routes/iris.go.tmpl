@@ -1,12 +1,10 @@
-package routes
+package message
 
 import (
-	"{{.Module}}/internal/handlers"
-
 	"github.com/kataras/iris/v12"
 )
 
-func SetupRoutes(app *iris.Application, h *handlers.Handler) {
+func SetupRoutes(app *iris.Application, h *Handler) {
 	api := app.Party("/api/v1")
 	api.Get("/message", h.Get)
 }

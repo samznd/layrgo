@@ -1,23 +1,26 @@
-package services
+package message
 
-import (
-	"context"
+import "context"
 
-	"{{.Module}}/internal/repositories"
-)
-
-type Service interface {
+// store is what this service needs from the data layer. It is
+// declared here, next to the code that uses it, and kept as small as that code
+// requires. Any type with a matching GetMessage method satisfies it, which is
+// what lets a test pass in a fake without a real database.
+type store interface {
 	GetMessage(ctx context.Context) (string, error)
 }
 
-type serviceImpl struct {
-	repo repositories.Repository
+type Service struct {
+	store store
 }
 
-func NewService(r repositories.Repository) Service {
-	return &serviceImpl{repo: r}
+// NewService accepts an interface and returns a concrete type.
+func NewService(store store) *Service {
+	return &Service{store: store}
 }
 
-func (s *serviceImpl) GetMessage(ctx context.Context) (string, error) {
-	return s.repo.GetMessage(ctx)
+// GetMessage only forwards to the store for now. Business rules
+// (validation, combining several data sources, transactions) belong here.
+func (s *Service) GetMessage(ctx context.Context) (string, error) {
+	return s.store.GetMessage(ctx)
 }

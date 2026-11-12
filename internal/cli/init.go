@@ -23,7 +23,7 @@ var (
 var InitCmd = &cobra.Command{
 	Use:   "init [project-name]",
 	Short: "Initialize a new Go web application",
-	Long: `Initialize a new Go web application with clean architecture.
+	Long: `Initialize a new Go web application with a handler, service and data layer already wired up.
 
 Run without flags for an interactive wizard, or pass a project name with
 flags to scaffold non-interactively (great for scripts and demos).
@@ -32,6 +32,9 @@ Examples:
   layrgo init
   layrgo init myapi --framework gin --database Postgres --orm GORM
   layrgo init myapi --framework chi --database SQLite --no-orm
+
+The project is packaged by feature: internal/message holds the sample endpoint's
+handler, service, store and routes together.
 
 Scaffolding refuses to write into a non-empty directory; pass --force to override.`,
 	Args: cobra.MaximumNArgs(1),

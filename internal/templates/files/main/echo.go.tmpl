@@ -5,10 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"{{.Module}}/config"
-	"{{.Module}}/internal/handlers"
-	"{{.Module}}/internal/repositories"
-	"{{.Module}}/internal/routes"
-	"{{.Module}}/internal/services"
+	"{{.Module}}/internal/message"
 	"{{.Module}}/pkg/utils"
 )
 
@@ -26,7 +23,7 @@ func main() {
 {{template "di" .}}
 
 	api := e.Group("/api/v1")
-	routes.SetupRoutes(api, handler)
+	message.SetupRoutes(api, handler)
 
 	log.Println("🚀 Echo server is running on http://localhost:3000")
 	if err := e.Start(":3000"); err != nil {

@@ -5,10 +5,7 @@ import (
 
 	"github.com/kataras/iris/v12"
 	"{{.Module}}/config"
-	"{{.Module}}/internal/handlers"
-	"{{.Module}}/internal/repositories"
-	"{{.Module}}/internal/routes"
-	"{{.Module}}/internal/services"
+	"{{.Module}}/internal/message"
 	"{{.Module}}/pkg/utils"
 )
 
@@ -25,7 +22,7 @@ func main() {
 
 {{template "di" .}}
 
-	routes.SetupRoutes(app, handler)
+	message.SetupRoutes(app, handler)
 
 	log.Println("🚀 Iris server is running on http://localhost:3000")
 	if err := app.Listen(":3000"); err != nil {

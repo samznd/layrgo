@@ -6,10 +6,7 @@ import (
 	"time"
 
 	"{{.Module}}/config"
-	"{{.Module}}/internal/handlers"
-	"{{.Module}}/internal/repositories"
-	"{{.Module}}/internal/routes"
-	"{{.Module}}/internal/services"
+	"{{.Module}}/internal/message"
 	"{{.Module}}/pkg/utils"
 )
 
@@ -26,7 +23,7 @@ func main() {
 
 {{template "di" .}}
 
-	routes.SetupRoutes(mux, handler)
+	message.SetupRoutes(mux, handler)
 
 	// An explicit http.Server rather than http.ListenAndServe: the package-level
 	// helper has no timeouts, so a slow or idle client can hold a connection

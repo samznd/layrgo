@@ -1,11 +1,9 @@
-package routes
+package message
 
 import (
-	"{{.Module}}/internal/handlers"
-
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoutes(api *gin.RouterGroup, h *handlers.Handler) {
+func SetupRoutes(api *gin.RouterGroup, h *Handler) {
 	api.GET("/message", h.Get)
 }

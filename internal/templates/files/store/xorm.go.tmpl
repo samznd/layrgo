@@ -1,0 +1,29 @@
+package message
+
+import (
+	"context"
+	"fmt"
+
+	"xorm.io/xorm"
+)
+
+// Store is a concrete type. The service that uses it declares the
+// interface it needs, so there is no interface here to keep in sync.
+type Store struct {
+	engine *xorm.Engine
+}
+
+func NewStore(engine *xorm.Engine) *Store {
+	return &Store{engine: engine}
+}
+
+func (s *Store) GetMessage(ctx context.Context) (string, error) {
+	rows, err := s.engine.Context(ctx).QueryString("SELECT 'data from the store' AS message")
+	if err != nil {
+		return "", err
+	}
+	if len(rows) == 0 {
+		return "", fmt.Errorf("no rows returned")
+	}
+	return rows[0]["message"], nil
+}
