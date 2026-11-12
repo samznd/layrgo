@@ -3,6 +3,16 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
+## v1.3.1 — 2026-11-12
+
+### Fixed
+- **A test still expected the pre-v1.3.0 sample response.**
+  `TestScaffold_RunsWithoutDotEnv` looked for `"data from repository"`, but v1.3.0
+  changed the generated app's response to `"data from the store"`, so the test
+  suite failed at the v1.3.0 tag. The generated code was correct; only the
+  assertion was stale. No change to the CLI or to generated projects: v1.3.0 and
+  v1.3.1 produce identical output.
+
 ## v1.3.0 — 2026-11-12
 
 ### Changed

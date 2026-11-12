@@ -176,8 +176,8 @@ Versioning follows [Semantic Versioning](https://semver.org/) with `v`-prefixed 
 
 ```bash
 # tag a release (triggers GoReleaser via GitHub Actions)
-git tag -a v1.3.0 -m "v1.3.0"
-git push origin v1.3.0
+git tag -a v1.3.1 -m "v1.3.1"
+git push origin v1.3.1
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
