@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
-## v1.4.0 — unreleased
+## v1.4.0 — 2026-11-18
 
 ### Added
 - **Generated projects carry instructions for AI coding agents.** `AGENTS.md` is
