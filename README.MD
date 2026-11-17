@@ -8,6 +8,8 @@
 
 Layrgo is a CLI that generates a complete, compilable Go web project — handler, service and data layers already wired together, dependency injection, `.env` config, Docker, and pinned dependencies — so you start building features instead of wiring boilerplate.
 
+Every project also ships with instructions for AI coding agents, so Claude Code, Cursor, Codex, Copilot and Gemini CLI add features in the same structure, with tests.
+
 ## Why Layrgo?
 
 | Without Layrgo                          | With Layrgo                                  |
@@ -16,6 +18,7 @@ Layrgo is a CLI that generates a complete, compilable Go web project — handler
 | Pick framework + DB + ORM from scratch  | Choose your stack interactively or via flags |
 | Write Dockerfile and compose yourself   | Docker + compose generated per database      |
 | Hope the layout is idiomatic            | Standard Go project layout out of the box    |
+| AI agents invent a new structure each time | `AGENTS.md` keeps them in your project's shape |
 
 **Supported stacks:** Fiber · Gin · Echo · Chi · Iris · `net/http` × Postgres · MySQL · SQLite × GORM · XORM · Ent · raw `database/sql`
 
@@ -39,6 +42,10 @@ go run ./cmd
 curl http://localhost:3000/api/v1/message
 # {"message":"data from the store"}
 ```
+
+Then open the project in your AI coding tool and ask it to *"add an orders feature"*.
+It reads `AGENTS.md` and builds the feature in the project's own shape, with a test.
+See [Works with AI coding agents](#works-with-ai-coding-agents).
 
 ### Dependency-free routing (`net/http`)
 
@@ -76,6 +83,40 @@ Next steps:
   go run ./cmd
   curl http://localhost:3000/api/v1/message
 ```
+
+## Works with AI coding agents
+
+Every generated project includes an `AGENTS.md` written for its exact stack. It
+tells an agent how the project is laid out, the rules that keep the layers
+apart, the commands that prove a change works, and a complete, compilable
+example of adding a feature, using that framework's routing, that database's
+SQL placeholders and that ORM's migrations.
+
+One file serves every tool. Codex, Cursor, Windsurf, Zed, Amp and others read
+`AGENTS.md` directly; `CLAUDE.md` and `GEMINI.md` import it for Claude Code and
+Gemini CLI, and `.github/copilot-instructions.md` points GitHub Copilot to it.
+Edit `AGENTS.md` and every tool follows the change.
+
+The sample feature teaches by example too: it ships with a test
+(`service_test.go`) and creates its own table at startup (`Migrate`), and agents
+copy what they see.
+
+### What we measured
+
+We gave AI agents (Claude Sonnet) the same task, "add an orders feature backed by
+Postgres", five times per setup, and tested every result against a real Postgres:
+
+| | Plain Go module | Layrgo + AGENTS.md |
+|---|---|---|
+| Works end to end | 5/5 | 5/5 |
+| Follows `handler → service → store` | 0/5 | 5/5 |
+| Wrote tests for the feature | 4/5 | 5/5 |
+| Same file layout every run | no | yes |
+
+Before the sample feature shipped with a test, agents working in a Layrgo
+project without `AGENTS.md` wrote tests 0 times in 5; with it, 5 times in 5. The
+cost of `AGENTS.md` is roughly 7k extra tokens per feature. These are small
+samples from one model and one stack, so treat them as a signal, not a benchmark.
 
 ## Installation
 
@@ -126,8 +167,9 @@ your-project/
 └── .github/copilot-instructions.md  # GitHub Copilot: points to AGENTS.md
 ```
 
-To add a feature, copy `internal/message` to `internal/<name>` and wire it in
-`cmd/main.go`.
+To add a feature, copy `internal/message` to `internal/<name>`, then wire it in
+`cmd/main.go`: build its store, call its `Migrate`, and register its routes.
+`AGENTS.md` walks through a complete example for your stack.
 
 Interfaces are declared by the code that uses them, and constructors return
 concrete types ("accept interfaces, return structs"). The service declares the
@@ -178,32 +220,15 @@ make vet
 
 ## Releases
 
-Versioning follows [Semantic Versioning](https://semver.org/) with `v`-prefixed git tags (`v1.0.0`, `v1.1.0`, `v1.2.0`, `v1.3.0`, …).
+Versioning follows [Semantic Versioning](https://semver.org/) with `v`-prefixed git tags (`v1.0.0`, `v1.1.0`, …, `v1.4.0`).
 
 ```bash
 # tag a release (triggers GoReleaser via GitHub Actions)
-git tag -a v1.3.1 -m "v1.3.1"
-git push origin v1.3.1
+git tag -a v1.4.0 -m "v1.4.0"
+git push origin v1.4.0
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
-
-## Works with AI coding agents
-
-Every generated project includes an `AGENTS.md` written for its exact stack. It
-tells an agent how the project is laid out, the rules that keep the layers
-apart, the commands that prove a change works, and a complete, compilable
-example of adding a feature, using that framework's routing, that database's
-SQL placeholders and that ORM's migrations.
-
-One file serves every tool. Codex, Cursor, Windsurf, Zed, Amp and others read
-`AGENTS.md` directly; `CLAUDE.md` and `GEMINI.md` import it for Claude Code and
-Gemini CLI, and `.github/copilot-instructions.md` points GitHub Copilot to it.
-Edit `AGENTS.md` and every tool follows the change.
-
-Ask your agent to "add a bookmarks feature" and it builds the handler, service,
-store and routes in the same shape as the rest of the project, instead of
-inventing a new one.
 
 ## Roadmap
 
