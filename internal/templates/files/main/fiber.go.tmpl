@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/gofiber/fiber/v3"
+
 	"{{.Module}}/config"
 	"{{.Module}}/internal/message"
 	"{{.Module}}/pkg/utils"
@@ -23,7 +25,7 @@ func main() {
 {{template "di" .}}
 
 	api := app.Group("/api/v1")
-	message.SetupRoutes(api, handler)
+	message.SetupRoutes(api, messageHandler)
 
 	log.Println("🚀 Fiber server is running on http://localhost:3000")
 	if err := app.Listen(":3000"); err != nil {

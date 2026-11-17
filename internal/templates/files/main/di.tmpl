@@ -1,3 +1,8 @@
-{{define "di"}}	store := message.NewStore(config.DB)
-	service := message.NewService(store)
-	handler := message.NewHandler(service){{end}}
+{{define "di"}}	// Prefix each variable with its feature, so the next feature can be wired
+	// alongside without a name clash.
+	messageStore := message.NewStore(config.DB)
+	if err := messageStore.Migrate(context.Background()); err != nil {
+		log.Fatalf("migrate messages: %v", err)
+	}
+	messageService := message.NewService(messageStore)
+	messageHandler := message.NewHandler(messageService){{end}}

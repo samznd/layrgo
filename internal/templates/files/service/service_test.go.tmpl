@@ -1,0 +1,38 @@
+package message
+
+import (
+	"context"
+	"errors"
+	"testing"
+)
+
+// fakeStore stands in for the database, so the service can be tested without one.
+type fakeStore struct {
+	message string
+	err     error
+}
+
+func (f fakeStore) GetMessage(ctx context.Context) (string, error) {
+	return f.message, f.err
+}
+
+func TestService_GetMessage(t *testing.T) {
+	s := NewService(fakeStore{message: "hello"})
+
+	got, err := s.GetMessage(context.Background())
+	if err != nil {
+		t.Fatalf("GetMessage: %v", err)
+	}
+	if got != "hello" {
+		t.Errorf("GetMessage = %q, want %q", got, "hello")
+	}
+}
+
+func TestService_GetMessage_StoreError(t *testing.T) {
+	storeErr := errors.New("database unavailable")
+	s := NewService(fakeStore{err: storeErr})
+
+	if _, err := s.GetMessage(context.Background()); !errors.Is(err, storeErr) {
+		t.Errorf("GetMessage error = %v, want %v", err, storeErr)
+	}
+}

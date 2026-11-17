@@ -3,7 +3,9 @@ package scaffold_test
 import (
 	"bytes"
 	"context"
+	"go/format"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"os/exec"
@@ -134,8 +136,13 @@ func TestScaffold_AllStacksWriteFiles(t *testing.T) {
 						filepath.Join("internal", "message", "handler.go"),
 						filepath.Join("internal", "message", "service.go"),
 						filepath.Join("internal", "message", "store.go"),
+						filepath.Join("internal", "message", "service_test.go"),
 						filepath.Join("internal", "message", "routes.go"),
 						".gitignore",
+						"AGENTS.md",
+						"CLAUDE.md",
+						"GEMINI.md",
+						filepath.Join(".github", "copilot-instructions.md"),
 					} {
 						path := filepath.Join(cfg.ProjectPath, rel)
 						info, err := os.Stat(path)
@@ -229,4 +236,48 @@ func TestScaffold_RunsWithoutDotEnv(t *testing.T) {
 	}
 
 	t.Fatalf("server never became ready (last error: %v)\nprocess output:\n%s", lastErr, buf.String())
+}
+
+// AGENTS.md tells agents "gofmt -l ." must print nothing, so the generated
+// project has to start out gofmt-clean on every stack.
+func TestScaffold_GeneratedGoIsGofmtClean(t *testing.T) {
+	t.Parallel()
+
+	for _, fw := range []string{"Fiber", "Gin", "Echo", "Chi", "Iris", "stdlib"} {
+		for _, orm := range []string{"none", "GORM", "XORM", "Ent"} {
+			// "zapp" sorts after "github.com", "aapp" before: both must be clean.
+			for _, name := range []string{"aapp", "zapp"} {
+				cfg := scaffold.Config{
+					ProjectName: name,
+					ProjectPath: filepath.Join(t.TempDir(), name),
+					Framework:   fw,
+					Database:    "Postgres",
+					ORM:         orm,
+				}
+				if err := scaffold.WriteFiles(cfg); err != nil {
+					t.Fatalf("%s/%s: %v", fw, orm, err)
+				}
+				err := filepath.WalkDir(cfg.ProjectPath, func(path string, d fs.DirEntry, err error) error {
+					if err != nil || d.IsDir() || filepath.Ext(path) != ".go" {
+						return err
+					}
+					src, err := os.ReadFile(path)
+					if err != nil {
+						return err
+					}
+					formatted, err := format.Source(src)
+					if err != nil {
+						return err
+					}
+					if !bytes.Equal(src, formatted) {
+						t.Errorf("%s/%s/%s: %s is not gofmt-clean", fw, orm, name, path)
+					}
+					return nil
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+	}
 }

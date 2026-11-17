@@ -19,13 +19,17 @@ type FeatureConfig struct {
 }
 
 // WriteFeature generates the sample feature package: its store, service,
-// handler, and route files.
+// service test, handler, and route files.
 func WriteFeature(cfg FeatureConfig) error {
 	store, err := StoreFile(cfg.ProjectName, cfg.ORM)
 	if err != nil {
 		return err
 	}
 	service, err := ServiceFile(cfg.ProjectName)
+	if err != nil {
+		return err
+	}
+	serviceTest, err := ServiceTestFile(cfg.ProjectName)
 	if err != nil {
 		return err
 	}
@@ -44,6 +48,7 @@ func WriteFeature(cfg FeatureConfig) error {
 	}{
 		{"store.go", store},
 		{"service.go", service},
+		{"service_test.go", serviceTest},
 		{"handler.go", handler},
 		{"routes.go", routes},
 	}
