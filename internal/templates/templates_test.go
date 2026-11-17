@@ -35,14 +35,14 @@ func TestStoreFile_XORM_ErrorPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if strings.Count(content, `return "", err`) < 1 {
+	if !strings.Contains(content, `return "", fmt.Errorf("get message: %w", err)`) {
 		t.Error("xorm repository should propagate the query error")
 	}
-	if !strings.Contains(content, "len(rows) == 0") {
-		t.Error("xorm repository should guard against an empty result set")
+	if !strings.Contains(content, "if !has {") {
+		t.Error("xorm repository should guard against a missing row")
 	}
-	if !strings.Contains(content, `return "", fmt.Errorf("no rows returned")`) {
-		t.Error("xorm repository should return an error for an empty result set")
+	if !strings.Contains(content, `return "", fmt.Errorf("get message: no rows")`) {
+		t.Error("xorm repository should return an error for a missing row")
 	}
 }
 
@@ -124,15 +124,16 @@ func TestHandlerFile_RejectsUnknownFramework(t *testing.T) {
 func TestMainFile_InjectsDependencies(t *testing.T) {
 	t.Parallel()
 
-	for _, fw := range []string{"fiber", "gin", "echo", "chi", "iris"} {
+	for _, fw := range []string{"fiber", "gin", "echo", "chi", "iris", "stdlib"} {
 		content, err := templates.MainFile("myapp", fw)
 		if err != nil {
 			t.Fatalf("%s: %v", fw, err)
 		}
 		for _, want := range []string{
-			"store := message.NewStore(config.DB)",
-			"service := message.NewService(store)",
-			"handler := message.NewHandler(service)",
+			"messageStore := message.NewStore(config.DB)",
+			"if err := messageStore.Migrate(context.Background()); err != nil",
+			"messageService := message.NewService(messageStore)",
+			"messageHandler := message.NewHandler(messageService)",
 			"if err := config.Connect(); err != nil",
 			"defer config.Close()",
 		} {
@@ -296,9 +297,9 @@ func TestFeaturePackage_SinglePackage(t *testing.T) {
 		}
 		for _, want := range []string{
 			`"myapp/internal/message"`,
-			"store := message.NewStore(config.DB)",
-			"service := message.NewService(store)",
-			"handler := message.NewHandler(service)",
+			"messageStore := message.NewStore(config.DB)",
+			"messageService := message.NewService(messageStore)",
+			"messageHandler := message.NewHandler(messageService)",
 			"message.SetupRoutes(",
 		} {
 			if !strings.Contains(mainFile, want) {
@@ -327,6 +328,121 @@ func TestFeaturePackage_SinglePackage(t *testing.T) {
 		}
 		if !strings.Contains(store, "type Store struct") || strings.Contains(store, "Repository") {
 			t.Errorf("%s: expected a Store and no Repository:\n%s", orm, store)
+		}
+	}
+}
+
+// AGENTS.md must render for every stack, with nothing left unrendered.
+func TestAgentsFile_AllStacks(t *testing.T) {
+	t.Parallel()
+
+	for _, fw := range []string{"Fiber", "Gin", "Echo", "Chi", "Iris", "stdlib"} {
+		for _, db := range []string{"Postgres", "MySQL", "SQLite"} {
+			for _, orm := range []string{"none", "GORM", "XORM", "Ent", ""} {
+				content, err := templates.AgentsFile("myapp", fw, db, orm)
+				if err != nil {
+					t.Fatalf("%s/%s/%s: %v", fw, db, orm, err)
+				}
+				for _, bad := range []string{"{{", "}}", "<no value>"} {
+					if strings.Contains(content, bad) {
+						t.Errorf("%s/%s/%s: AGENTS.md contains %q", fw, db, orm, bad)
+					}
+				}
+				for _, want := range []string{"Module: `myapp`", "go test ./...", "bookmarkStore := bookmark.NewStore(config.DB)"} {
+					if !strings.Contains(content, want) {
+						t.Errorf("%s/%s/%s: AGENTS.md missing %q", fw, db, orm, want)
+					}
+				}
+			}
+		}
+	}
+}
+
+// The instructions an agent most often gets wrong differ by stack.
+func TestAgentsFile_StackSpecificGuidance(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		fw, db, orm string
+		want        []string
+		notWant     []string
+	}{
+		{"chi", "postgres", "none", []string{"Do not** call `r.Route(\"/api/v1\"", "bookmark.SetupRoutes(r, bookmarkHandler)", "`$1, $2, ...`", "sql.ErrNoRows"}, []string{"AutoMigrate"}},
+		{"gin", "sqlite", "gorm", []string{"**without** that prefix", "bookmark.SetupRoutes(api, bookmarkHandler)", "AutoMigrate", "gorm.ErrRecordNotFound"}, []string{"`$1"}},
+		{"stdlib", "mysql", "xorm", []string{"r.PathValue(\"id\")", "bookmark.SetupRoutes(mux, bookmarkHandler)", "s.db.Sync"}, []string{"AutoMigrate"}},
+		{"fiber", "mysql", "none", []string{"Fiber **v3**", "Placeholders for MySQL", "`?`"}, nil},
+		{"iris", "sqlite", "ent", []string{"app.Party(\"/api/v1/bookmarks\")", "Ent was selected", "ent new"}, nil},
+	}
+	for _, c := range cases {
+		content, err := templates.AgentsFile("myapp", c.fw, c.db, c.orm)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, want := range c.want {
+			if !strings.Contains(content, want) {
+				t.Errorf("%s/%s/%s: missing %q", c.fw, c.db, c.orm, want)
+			}
+		}
+		for _, bad := range c.notWant {
+			if strings.Contains(content, bad) {
+				t.Errorf("%s/%s/%s: should not contain %q", c.fw, c.db, c.orm, bad)
+			}
+		}
+	}
+}
+
+func TestClaudeFile_ImportsAgents(t *testing.T) {
+	t.Parallel()
+
+	if got := templates.ClaudeFile(); got != "@AGENTS.md\n" {
+		t.Errorf("CLAUDE.md = %q, want it to import AGENTS.md", got)
+	}
+}
+
+// Tools that look for their own file are pointed back to AGENTS.md.
+func TestAgentPointerFiles(t *testing.T) {
+	t.Parallel()
+
+	if got := templates.GeminiFile(); got != "@./AGENTS.md\n" {
+		t.Errorf("GEMINI.md = %q, want it to import AGENTS.md", got)
+	}
+	copilot := templates.CopilotFile()
+	for _, want := range []string{"[AGENTS.md](../AGENTS.md)", "handler → service → store", "go test ./..."} {
+		if !strings.Contains(copilot, want) {
+			t.Errorf("copilot-instructions.md missing %q", want)
+		}
+	}
+}
+
+// Agents copy the sample feature, so it ships with a test for them to copy.
+func TestServiceTestFile(t *testing.T) {
+	t.Parallel()
+
+	content, err := templates.ServiceTestFile("myapp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"package message", "type fakeStore struct", "func TestService_GetMessage(", "NewService(fakeStore{"} {
+		if !strings.Contains(content, want) {
+			t.Errorf("service_test.go missing %q", want)
+		}
+	}
+}
+
+// Agents copy the sample store, so every variant shows how a feature creates
+// its own table at startup.
+func TestStoreFile_HasMigrate(t *testing.T) {
+	t.Parallel()
+
+	for _, orm := range []string{"none", "gorm", "xorm", "ent"} {
+		content, err := templates.StoreFile("myapp", orm)
+		if err != nil {
+			t.Fatalf("%s: %v", orm, err)
+		}
+		for _, want := range []string{"func (s *Store) Migrate(ctx context.Context) error", "data from the store"} {
+			if !strings.Contains(content, want) {
+				t.Errorf("%s store missing %q", orm, want)
+			}
 		}
 	}
 }

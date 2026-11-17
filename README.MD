@@ -110,7 +110,8 @@ your-project/
 │   ├── message/             # One package per feature
 │   │   ├── handler.go       # HTTP layer
 │   │   ├── service.go       # Business logic
-│   │   ├── store.go         # Data access
+│   │   ├── service_test.go  # Service test with a fake store
+│   │   ├── store.go         # Data access, plus Migrate for its table
 │   │   └── routes.go        # Route registration
 │   └── middleware/          # Ready for your middleware
 ├── pkg/utils/               # Env loader
@@ -118,7 +119,11 @@ your-project/
 ├── docker-compose.yml
 ├── .gitignore
 ├── .env.example
-└── .env                     # gitignored; local overrides
+├── .env                     # gitignored; local overrides
+├── AGENTS.md                # Instructions for AI coding agents
+├── CLAUDE.md                # Claude Code: imports AGENTS.md
+├── GEMINI.md                # Gemini CLI: imports AGENTS.md
+└── .github/copilot-instructions.md  # GitHub Copilot: points to AGENTS.md
 ```
 
 To add a feature, copy `internal/message` to `internal/<name>` and wire it in
@@ -127,7 +132,8 @@ To add a feature, copy `internal/message` to `internal/<name>` and wire it in
 Interfaces are declared by the code that uses them, and constructors return
 concrete types ("accept interfaces, return structs"). The service declares the
 one-method `store` interface it needs; `NewStore` returns a `*Store`. A test can
-hand the service a fake store without a database.
+hand the service a fake store without a database, as the generated
+`service_test.go` does.
 
 ## Commands
 
@@ -182,12 +188,31 @@ git push origin v1.3.1
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
+## Works with AI coding agents
+
+Every generated project includes an `AGENTS.md` written for its exact stack. It
+tells an agent how the project is laid out, the rules that keep the layers
+apart, the commands that prove a change works, and a complete, compilable
+example of adding a feature, using that framework's routing, that database's
+SQL placeholders and that ORM's migrations.
+
+One file serves every tool. Codex, Cursor, Windsurf, Zed, Amp and others read
+`AGENTS.md` directly; `CLAUDE.md` and `GEMINI.md` import it for Claude Code and
+Gemini CLI, and `.github/copilot-instructions.md` points GitHub Copilot to it.
+Edit `AGENTS.md` and every tool follows the change.
+
+Ask your agent to "add a bookmarks feature" and it builds the handler, service,
+store and routes in the same shape as the rest of the project, instead of
+inventing a new one.
+
 ## Roadmap
 
 - [x] Multi-framework support (Fiber, Gin, Echo, Chi, Iris, net/http)
 - [x] Docker + compose per database
 - [x] Compilable generated output with DI
 - [x] Non-interactive `init` flags
+- [x] AGENTS.md for AI coding agents (Claude Code, Cursor, Codex, Copilot, Gemini)
+- [ ] `layrgo add feature` for agents and humans
 - [ ] GraphQL scaffold
 - [ ] gRPC scaffold
 - [ ] SQLBoiler support

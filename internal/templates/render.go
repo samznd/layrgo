@@ -18,6 +18,12 @@ type Data struct {
 	ORM       string
 	Database  string
 
+	// Set for the AGENTS.md template only.
+	FrameworkName string
+	DatabaseName  string
+	ORMName       string
+	RouterVar     string // the variable cmd/main.go passes to SetupRoutes
+
 	// Set for the config templates only.
 	DriverImport  string
 	DriverName    string
@@ -88,6 +94,12 @@ func RoutesFile(module, framework string) (string, error) {
 // ServiceFile renders the service file.
 func ServiceFile(module string) (string, error) {
 	return render("service/service.go.tmpl", Data{Module: module})
+}
+
+// ServiceTestFile renders the service's unit test. Agents copy the sample
+// feature's shape, so shipping a test makes them write tests for new features.
+func ServiceTestFile(module string) (string, error) {
+	return render("service/service_test.go.tmpl", Data{Module: module})
 }
 
 // StoreFile renders the data-access file for the given ORM.

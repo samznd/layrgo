@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"time"
@@ -23,7 +24,7 @@ func main() {
 
 {{template "di" .}}
 
-	message.SetupRoutes(mux, handler)
+	message.SetupRoutes(mux, messageHandler)
 
 	// http.ListenAndServe sets no timeouts, so build the server by hand.
 	srv := &http.Server{

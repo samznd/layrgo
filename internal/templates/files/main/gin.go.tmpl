@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/gin-gonic/gin"
+
 	"{{.Module}}/config"
 	"{{.Module}}/internal/message"
 	"{{.Module}}/pkg/utils"
@@ -23,7 +25,7 @@ func main() {
 {{template "di" .}}
 
 	api := r.Group("/api/v1")
-	message.SetupRoutes(api, handler)
+	message.SetupRoutes(api, messageHandler)
 
 	log.Println("🚀 Gin server is running on http://localhost:3000")
 	if err := r.Run(":3000"); err != nil {

@@ -54,6 +54,11 @@ func WriteFiles(cfg Config) error {
 		return err
 	}
 
+	agentsContent, err := templates.AgentsFile(cfg.ProjectName, cfg.Framework, cfg.Database, cfg.ORM)
+	if err != nil {
+		return err
+	}
+
 	// A slice, not a map, so files are always written in the same order.
 	files := []struct {
 		rel     string
@@ -67,6 +72,10 @@ func WriteFiles(cfg Config) error {
 		{".gitignore", gitignoreFile()},
 		{"Dockerfile", dockerfile()},
 		{"docker-compose.yml", dockerComposeFile(cfg.Database)},
+		{"AGENTS.md", agentsContent},
+		{"CLAUDE.md", templates.ClaudeFile()},
+		{"GEMINI.md", templates.GeminiFile()},
+		{filepath.Join(".github", "copilot-instructions.md"), templates.CopilotFile()},
 	}
 
 	for _, f := range files {
@@ -183,7 +192,8 @@ func InitialEnv() error {
 		return fmt.Errorf("load .env file: %w", err)
 	}
 	return nil
-}`
+}
+`
 }
 
 func gitignoreFile() string {
