@@ -3,6 +3,38 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
+## v1.4.0 — unreleased
+
+### Added
+- **Generated projects carry instructions for AI coding agents.** `AGENTS.md` is
+  written for the project's exact framework, database and ORM: the commands that
+  prove a change works, the layering rules, and a complete, compilable example of
+  adding a feature with that stack's routing, SQL placeholders and table setup.
+  Codex, Cursor, Windsurf, Zed, Amp and others read it directly. `CLAUDE.md` and
+  `GEMINI.md` import it for Claude Code and Gemini CLI, and
+  `.github/copilot-instructions.md` points GitHub Copilot to it.
+- **The sample feature ships with a test.** `internal/message/service_test.go`
+  tests the service against a fake store. Agents copy the sample feature's shape;
+  in our runs without `AGENTS.md`, agents went from writing tests for a new
+  feature 0 times in 5 to 5 times in 5 once the sample had one.
+
+### Changed
+- **The sample store creates its own table.** `internal/message/store.go` now has
+  a `Migrate` method that creates and seeds a `messages` table (`message` with
+  XORM), and `cmd/main.go` calls it at startup before wiring the feature. It is
+  safe to run on every start. The response is unchanged:
+  `{"message":"data from the store"}`.
+- The XORM store's field is named `db`, like the other stores, instead of `engine`.
+- Wiring variables in `cmd/main.go` are prefixed with their feature
+  (`messageStore`, `messageService`, `messageHandler`), so a second feature can
+  be wired alongside without a name clash.
+
+### Fixed
+- **Generated Go was not always gofmt-clean.** In `cmd/main.go`, a project name
+  that sorts before `github.com` (for example `api`) left the imports unsorted;
+  the project's own imports are now a separate group. `pkg/utils/env_utils.go`
+  was missing its final newline.
+
 ## v1.3.1 — 2026-11-12
 
 ### Fixed
