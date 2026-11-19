@@ -250,7 +250,10 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes.
 - [x] Compilable generated output with DI
 - [x] Non-interactive `init` flags
 - [x] AGENTS.md for AI coding agents (Claude Code, Cursor, Codex, Copilot, Gemini)
+- [x] Sample feature with a test and startup table setup, for agents to copy
 - [ ] `layrgo add feature` for agents and humans
+- [ ] Sample store test, so agents test their SQL too
+- [ ] MCP server, so agents can call Layrgo as a tool
 - [ ] GraphQL scaffold
 - [ ] gRPC scaffold
 - [ ] SQLBoiler support
