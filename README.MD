@@ -4,7 +4,11 @@
 [![GitHub release](https://img.shields.io/github/v/release/samznd/layrgo.svg)](https://github.com/samznd/layrgo/releases)
 [![CI](https://github.com/samznd/layrgo/actions/workflows/ci.yml/badge.svg)](https://github.com/samznd/layrgo/actions/workflows/ci.yml)
 
-**Scaffold production-ready Go web APIs in seconds.**
+<p align="center">
+  <img src="docs/assets/layrgo-banner.png" width="600" alt="Layrgo: one command scaffolds a layered Go API, then an AI agent adds an orders feature in the same shape, with a passing test">
+</p>
+
+**Scaffold a Go API. Let AI build on it.**
 
 Layrgo is a CLI that generates a complete, compilable Go web project — handler, service and data layers already wired together, dependency injection, `.env` config, Docker, and pinned dependencies — so you start building features instead of wiring boilerplate.
 
@@ -204,8 +208,11 @@ layrgo/
 ├── internal/
 │   ├── cli/             # Commands (init, version)
 │   ├── scaffold/        # Scaffolding engine
-│   ├── templates/       # Generated app templates
+│   ├── templates/       # Template rendering
+│   │   └── files/       # The templates, AGENTS.md's included
 │   └── fileutil/
+├── docs/assets/         # README images
+├── scripts/             # Git hooks and their installer
 └── .github/workflows/   # CI + release
 ```
 
@@ -213,10 +220,16 @@ layrgo/
 
 ```bash
 make build          # build to bin/layrgo
+make run            # build, then run bin/layrgo
 make test           # unit tests
 make test-integration  # scaffold + go build smoke test
 make vet
+make clean          # remove bin/
 ```
+
+Run `scripts/install-hooks.sh` once after cloning to install the repo's git
+hooks. Its `commit-msg` hook removes Cursor's co-author trailer from commit
+messages.
 
 ## Releases
 
