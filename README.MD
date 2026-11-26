@@ -291,12 +291,12 @@ messages.
 
 ## Releases
 
-Versioning follows [Semantic Versioning](https://semver.org/) with `v`-prefixed git tags (`v1.0.0`, `v1.1.0`, …, `v1.5.1`).
+Versioning follows [Semantic Versioning](https://semver.org/) with `v`-prefixed git tags (`v1.0.0`, `v1.1.0`, …, `v1.6.0`).
 
 ```bash
 # tag a release (triggers GoReleaser via GitHub Actions)
-git tag -a v1.5.1 -m "v1.5.1"
-git push origin v1.5.1
+git tag -a v1.6.0 -m "v1.6.0"
+git push origin v1.6.0
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
@@ -310,6 +310,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes.
 - [x] AGENTS.md for AI coding agents (Claude Code, Cursor, Codex, Copilot, Gemini)
 - [x] Sample feature with a test and startup table setup, for agents to copy
 - [x] `layrgo add feature` for agents and humans
+- [x] `layrgo update agents`, so older projects get the current agent instructions
 - [ ] Sample store test, so agents test their SQL too
 - [ ] MCP server, so agents can call Layrgo as a tool
 - [ ] GraphQL scaffold

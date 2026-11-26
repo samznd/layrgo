@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
-## Unreleased
+## v1.6.0 — 2026-11-26
 
 ### Added
 - **`layrgo update agents`** brings the instructions for AI coding agents in an
