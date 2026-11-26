@@ -60,6 +60,22 @@ func AgentsFile(module, framework, database, orm string) (string, error) {
 	})
 }
 
+// AgentFiles renders every file that gives AI coding agents their
+// instructions: AGENTS.md and the files that point other tools to it. "init"
+// writes them and "update agents" rewrites them, so both always agree.
+func AgentFiles(module, framework, database, orm string) ([]GeneratedFile, error) {
+	agents, err := AgentsFile(module, framework, database, orm)
+	if err != nil {
+		return nil, err
+	}
+	return []GeneratedFile{
+		{Rel: "AGENTS.md", Content: agents},
+		{Rel: "CLAUDE.md", Content: ClaudeFile()},
+		{Rel: "GEMINI.md", Content: GeminiFile()},
+		{Rel: ".github/copilot-instructions.md", Content: CopilotFile()},
+	}, nil
+}
+
 // AGENTS.md is the single source of instructions. Codex, Cursor, Windsurf,
 // Zed, Amp and others read it directly; the files below point the tools that
 // look for their own filename back to it, so nothing is duplicated.

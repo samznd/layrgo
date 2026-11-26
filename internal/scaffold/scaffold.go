@@ -55,16 +55,15 @@ func WriteFiles(cfg Config) error {
 		return err
 	}
 
-	agentsContent, err := templates.AgentsFile(cfg.ProjectName, cfg.Framework, cfg.Database, cfg.ORM)
+	agentFiles, err := templates.AgentFiles(cfg.ProjectName, cfg.Framework, cfg.Database, cfg.ORM)
 	if err != nil {
 		return err
 	}
 
+	type file struct{ rel, content string }
+
 	// A slice, not a map, so files are always written in the same order.
-	files := []struct {
-		rel     string
-		content string
-	}{
+	files := []file{
 		{filepath.Join("cmd", "main.go"), mainContent},
 		{filepath.Join("config", "database.go"), databaseContent},
 		{filepath.Join("pkg", "utils", "env_utils.go"), utilsFile()},
@@ -74,10 +73,9 @@ func WriteFiles(cfg Config) error {
 		{"Dockerfile", dockerfile()},
 		{"docker-compose.yml", dockerComposeFile(cfg.Database)},
 		{project.StackFile, project.NewStack(cfg.Framework, cfg.Database, cfg.ORM).Marshal()},
-		{"AGENTS.md", agentsContent},
-		{"CLAUDE.md", templates.ClaudeFile()},
-		{"GEMINI.md", templates.GeminiFile()},
-		{filepath.Join(".github", "copilot-instructions.md"), templates.CopilotFile()},
+	}
+	for _, f := range agentFiles {
+		files = append(files, file{filepath.FromSlash(f.Rel), f.Content})
 	}
 
 	for _, f := range files {

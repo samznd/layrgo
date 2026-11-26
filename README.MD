@@ -190,6 +190,7 @@ hand the service a fake store without a database, as the generated
 layrgo init                  # interactive wizard
 layrgo init myapp --flags    # non-interactive scaffold
 layrgo add feature <name> --fields "..."   # add a feature to the project in .
+layrgo update agents         # refresh AGENTS.md and friends after upgrading
 layrgo version               # print version
 layrgo --help
 ```
@@ -236,16 +237,35 @@ printed) · `4` created and wired, but gofmt, build, vet or test failed.
 Projects created before v1.5.0 work too: the stack is read from `go.mod` and
 saved to `.layrgo.json`, and the feature is wired after the last existing one.
 
+### `update agents`
+
+Projects created by an older Layrgo keep the agent instructions of that
+version, so their agents don't know about newer commands such as
+`add feature`. After upgrading, run from the project root:
+
+```bash
+layrgo update agents --dry-run   # show what would change
+layrgo update agents
+```
+
+It rewrites `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and
+`.github/copilot-instructions.md` for the project's stack. Each file it
+changes is backed up first (`AGENTS.md.bak`, then `AGENTS.md.bak.2`, ...), so
+copy anything you added by hand from the backup, then delete it. Files already
+up to date are left alone. `--json` prints the result for scripts.
+
 ## Layrgo repository layout
 
 ```
 layrgo/
 ├── cmd/layrgo/          # CLI entry point
 ├── internal/
-│   ├── cli/             # Commands (init, add feature, version)
+│   ├── cli/             # Commands (init, add feature, update agents, version)
 │   ├── scaffold/        # Scaffolding engine
 │   ├── feature/         # add feature: names, fields, wiring, checks
 │   ├── project/         # An existing project's module and stack (.layrgo.json)
+│   ├── agents/          # update agents: rewrites the agent instruction files
+│   ├── textdiff/        # Unified diffs for --dry-run
 │   ├── templates/       # Template rendering
 │   │   └── files/       # The templates, AGENTS.md's included
 │   └── fileutil/
