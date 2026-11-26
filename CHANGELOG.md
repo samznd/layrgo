@@ -3,6 +3,24 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
+## Unreleased
+
+### Added
+- **`layrgo update agents`** brings the instructions for AI coding agents in an
+  existing project up to date: it rewrites `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`
+  and `.github/copilot-instructions.md` for the project's stack, so projects
+  made by an older Layrgo learn about `layrgo add feature`. It backs up each file
+  it changes (`AGENTS.md.bak`, ...) and never overwrites an earlier backup.
+  `--dry-run` shows the diff; `--json` prints the result. For projects without
+  `.layrgo.json`, it detects the stack from `go.mod` and records it.
+
+### Changed
+- `AGENTS.md` tells agents what to do when `layrgo` is not installed: install it
+  with `go install`, or follow the hand-written walkthrough when they can't.
+  It also points to `layrgo update agents` for refreshing the file.
+- `--dry-run` diffs show a changed line as the old line followed by the new
+  one, as `diff` does.
+
 ## v1.5.1 — 2026-11-26
 
 ### Fixed

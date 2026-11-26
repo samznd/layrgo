@@ -11,6 +11,7 @@ import (
 	"github.com/samznd/layrgo/internal/fileutil"
 	"github.com/samznd/layrgo/internal/project"
 	"github.com/samznd/layrgo/internal/templates"
+	"github.com/samznd/layrgo/internal/textdiff"
 )
 
 // Exit codes of "layrgo add feature". 0 means created, wired and checked.
@@ -189,7 +190,7 @@ func (p *plan) result() *Result {
 		res.ManualWiring = p.wire.Wiring.Manual()
 	}
 	if p.opts.DryRun {
-		res.Diff = unifiedDiff(mainFile, string(p.mainBefore), string(p.wire.Content))
+		res.Diff = textdiff.Unified(mainFile, string(p.mainBefore), string(p.wire.Content))
 	}
 	return res
 }

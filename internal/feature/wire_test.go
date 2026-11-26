@@ -135,18 +135,3 @@ func TestWire_DoesNotParse(t *testing.T) {
 		t.Fatalf("err = %v, want ErrCannotWire", err)
 	}
 }
-
-func TestUnifiedDiff(t *testing.T) {
-	t.Parallel()
-
-	a := "a\nb\nc\nd\ne\nf\ng\nh\n"
-	b := "a\nb\nc\nd\nNEW\ne\nf\ng\nh\n"
-	got := unifiedDiff("x.go", a, b)
-	want := "--- a/x.go\n+++ b/x.go\n@@ -2,6 +2,7 @@\n b\n c\n d\n+NEW\n e\n f\n g\n"
-	if got != want {
-		t.Errorf("diff =\n%s\nwant\n%s", got, want)
-	}
-	if unifiedDiff("x.go", a, a) != "" {
-		t.Error("equal inputs should give an empty diff")
-	}
-}

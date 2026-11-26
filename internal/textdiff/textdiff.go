@@ -1,13 +1,14 @@
-package feature
+// Package textdiff renders unified diffs of small text files, for dry runs.
+package textdiff
 
 import (
 	"fmt"
 	"strings"
 )
 
-// unifiedDiff returns a unified diff of a and b with three lines of context,
+// Unified returns a unified diff of a and b with three lines of context,
 // or "" when they are equal. It is meant for small files such as cmd/main.go.
-func unifiedDiff(name, a, b string) string {
+func Unified(name, a, b string) string {
 	if a == b {
 		return ""
 	}
@@ -43,12 +44,14 @@ func unifiedDiff(name, a, b string) string {
 			ops = append(ops, op{' ', x[i], i, j})
 			i++
 			j++
-		case j < len(y) && (i == len(x) || lcs[i][j+1] >= lcs[i+1][j]):
-			ops = append(ops, op{'+', y[j], i, j})
-			j++
-		default:
+		// On a tie, delete before inserting, so a changed line reads as the
+		// old line followed by the new one.
+		case i < len(x) && (j == len(y) || lcs[i+1][j] >= lcs[i][j+1]):
 			ops = append(ops, op{'-', x[i], i, j})
 			i++
+		default:
+			ops = append(ops, op{'+', y[j], i, j})
+			j++
 		}
 	}
 

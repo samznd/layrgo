@@ -487,3 +487,40 @@ func TestDatabaseFile_PostgresDSNIsAnEscapedURL(t *testing.T) {
 		}
 	}
 }
+
+// Agents without layrgo installed must know how to install it, or how to do
+// the work by hand, and humans must know how to refresh the file.
+func TestAgentsFile_FallbackAndUpdateNotes(t *testing.T) {
+	t.Parallel()
+
+	content, err := templates.AgentsFile("shop", "gin", "postgres", "none")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"go install github.com/samznd/layrgo/cmd/layrgo@latest",
+		"follow the walkthrough below by hand",
+		"layrgo update agents",
+	} {
+		if !strings.Contains(content, want) {
+			t.Errorf("AGENTS.md misses %q", want)
+		}
+	}
+}
+
+func TestAgentFiles_ListsEveryAgentFile(t *testing.T) {
+	t.Parallel()
+
+	files, err := templates.AgentFiles("shop", "gin", "postgres", "none")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, f := range files {
+		got = append(got, f.Rel)
+	}
+	want := "AGENTS.md CLAUDE.md GEMINI.md .github/copilot-instructions.md"
+	if strings.Join(got, " ") != want {
+		t.Errorf("AgentFiles = %v, want %s", got, want)
+	}
+}
