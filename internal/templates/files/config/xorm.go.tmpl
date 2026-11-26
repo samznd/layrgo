@@ -3,6 +3,10 @@ package config
 import (
 	"fmt"
 	"log"
+{{- if eq .Database "postgres"}}
+	"net"
+	"net/url"
+{{- end}}
 	"os"
 	"time"
 

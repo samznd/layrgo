@@ -446,3 +446,44 @@ func TestStoreFile_HasMigrate(t *testing.T) {
 		}
 	}
 }
+
+// An empty DB_PASSWORD used to break the "key=value" Postgres DSN: the driver
+// read the next setting as the password. The DSN is now a URL built with
+// url.UserPassword, which escapes the password.
+func TestDatabaseFile_PostgresDSNIsAnEscapedURL(t *testing.T) {
+	t.Parallel()
+
+	for _, orm := range []string{"none", "gorm", "xorm", "ent"} {
+		content, err := templates.DatabaseFile("postgres", orm)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, want := range []string{
+			`"net/url"`,
+			`url.UserPassword(os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"))`,
+			`net.JoinHostPort(os.Getenv("DB_HOST"), os.Getenv("DB_PORT"))`,
+			`RawQuery: "sslmode=disable"`,
+		} {
+			if !strings.Contains(content, want) {
+				t.Errorf("%s: missing %q in:\n%s", orm, want, content)
+			}
+		}
+		if strings.Contains(content, "password=%s") {
+			t.Errorf("%s: still builds a key=value DSN", orm)
+		}
+		if _, err := format.Source([]byte(content)); err != nil {
+			t.Errorf("%s: does not parse: %v", orm, err)
+		}
+	}
+
+	// MySQL and SQLite must not import packages they don't use.
+	for _, db := range []string{"mysql", "sqlite"} {
+		content, err := templates.DatabaseFile(db, "none")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(content, `"net/url"`) {
+			t.Errorf("%s imports net/url", db)
+		}
+	}
+}
