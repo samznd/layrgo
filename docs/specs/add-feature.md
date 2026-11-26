@@ -246,7 +246,7 @@ the types above, except where an ORM picks its own: GORM stores `float` as
 
 The Postgres run found that generated projects could not connect with an empty
 `DB_PASSWORD`. The fix, which builds the connection string as an escaped URL,
-ships after v1.5.0; see the changelog.
+ships in v1.5.1.
 
 Not covered yet: golden files per stack (tests check each stack's key lines
 instead), and the agent experiment.

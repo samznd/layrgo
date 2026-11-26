@@ -271,12 +271,12 @@ messages.
 
 ## Releases
 
-Versioning follows [Semantic Versioning](https://semver.org/) with `v`-prefixed git tags (`v1.0.0`, `v1.1.0`, …, `v1.5.0`).
+Versioning follows [Semantic Versioning](https://semver.org/) with `v`-prefixed git tags (`v1.0.0`, `v1.1.0`, …, `v1.5.1`).
 
 ```bash
 # tag a release (triggers GoReleaser via GitHub Actions)
-git tag -a v1.5.0 -m "v1.5.0"
-git push origin v1.5.0
+git tag -a v1.5.1 -m "v1.5.1"
+git push origin v1.5.1
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.

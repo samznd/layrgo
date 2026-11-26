@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
-## Unreleased
+## v1.5.1 — 2026-11-26
 
 ### Fixed
 - **Generated projects could not connect to Postgres with an empty
