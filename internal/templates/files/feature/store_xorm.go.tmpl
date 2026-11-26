@@ -1,0 +1,53 @@
+package {{.Package}}
+
+import (
+	"context"
+	"fmt"
+
+	"xorm.io/xorm"
+)
+
+// Store is the data access for {{.Plural}}, the only code that queries them.
+type Store struct {
+	db *xorm.Engine
+}
+
+func NewStore(db *xorm.Engine) *Store {
+	return &Store{db: db}
+}
+
+// Migrate creates or updates the {{.Table}} table. cmd/main.go calls it at startup.
+func (s *Store) Migrate(ctx context.Context) error {
+	if err := s.db.Context(ctx).Sync(new({{.Type}})); err != nil {
+		return fmt.Errorf("migrate {{.Table}}: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) Create(ctx context.Context, item {{.Type}}) ({{.Type}}, error) {
+	if _, err := s.db.Context(ctx).Insert(&item); err != nil {
+		return {{.Type}}{}, fmt.Errorf("create {{.Package}}: %w", err)
+	}
+	return item, nil
+}
+
+// List returns every {{.Package}}, oldest first, in one query.
+func (s *Store) List(ctx context.Context) ([]{{.Type}}, error) {
+	items := []{{.Type}}{}
+	if err := s.db.Context(ctx).Asc("id").Find(&items); err != nil {
+		return nil, fmt.Errorf("list {{.Plural}}: %w", err)
+	}
+	return items, nil
+}
+
+func (s *Store) Get(ctx context.Context, id int64) ({{.Type}}, error) {
+	var item {{.Type}}
+	has, err := s.db.Context(ctx).ID(id).Get(&item)
+	if err != nil {
+		return {{.Type}}{}, fmt.Errorf("get {{.Package}} %d: %w", id, err)
+	}
+	if !has {
+		return {{.Type}}{}, ErrNotFound
+	}
+	return item, nil
+}

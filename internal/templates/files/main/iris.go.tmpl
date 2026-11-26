@@ -25,6 +25,7 @@ func main() {
 {{template "di" .}}
 
 	message.SetupRoutes(app, messageHandler)
+	// layrgo:routes  (add feature inserts SetupRoutes calls above this line)
 
 	log.Println("🚀 Iris server is running on http://localhost:3000")
 	if err := app.Listen(":3000"); err != nil {

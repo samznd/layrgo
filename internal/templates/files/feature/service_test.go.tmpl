@@ -1,0 +1,77 @@
+package {{.Package}}
+
+import (
+	"context"
+	"errors"
+	"testing"
+{{- if .TestImportsTime}}
+	"time"
+{{- end}}
+)
+
+// fakeStore stands in for the database, so the service can be tested without one.
+type fakeStore struct {
+	items []{{.Type}}
+}
+
+func (f *fakeStore) Create(ctx context.Context, item {{.Type}}) ({{.Type}}, error) {
+	item.ID = int64(len(f.items) + 1)
+	f.items = append(f.items, item)
+	return item, nil
+}
+
+func (f *fakeStore) List(ctx context.Context) ([]{{.Type}}, error) {
+	return f.items, nil
+}
+
+func (f *fakeStore) Get(ctx context.Context, id int64) ({{.Type}}, error) {
+	for _, item := range f.items {
+		if item.ID == id {
+			return item, nil
+		}
+	}
+	return {{.Type}}{}, ErrNotFound
+}
+
+// valid{{.Type}} returns {{.Article}} {{.Package}} that passes validation. Tests change one
+// field at a time from it.
+func valid{{.Type}}() {{.Type}} {
+	return {{.Type}}{
+{{- range .Fields}}{{if not .Optional}}
+		{{.GoName}}: {{.TestValue}},
+{{- end}}{{end}}
+	}
+}
+
+func TestService_Create(t *testing.T) {
+	fake := &fakeStore{}
+	s := NewService(fake)
+
+	got, err := s.Create(context.Background(), valid{{.Type}}())
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if got.ID == 0 {
+		t.Error("Create returned no ID")
+	}
+	if len(fake.items) != 1 {
+		t.Errorf("store has %d {{.Plural}}, want 1", len(fake.items))
+	}
+}
+{{range .Fields}}{{if .Required}}
+func TestService_Create_Requires{{.GoName}}(t *testing.T) {
+	item := valid{{$.Type}}()
+	item.{{.GoName}} = "  "
+
+	_, err := NewService(&fakeStore{}).Create(context.Background(), item)
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("err = %v, want ErrInvalid", err)
+	}
+}
+{{end}}{{end}}
+func TestService_Get_NotFound(t *testing.T) {
+	_, err := NewService(&fakeStore{}).Get(context.Background(), 42)
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("err = %v, want ErrNotFound", err)
+	}
+}

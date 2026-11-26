@@ -1,0 +1,47 @@
+package {{.Package}}
+
+import (
+	"context"
+{{- if .HasRequired}}
+	"fmt"
+	"strings"
+{{- end}}
+)
+
+// store is what the service needs from the data layer. Tests can pass a fake.
+type store interface {
+	Create(ctx context.Context, item {{.Type}}) ({{.Type}}, error)
+	List(ctx context.Context) ([]{{.Type}}, error)
+	Get(ctx context.Context, id int64) ({{.Type}}, error)
+}
+
+type Service struct {
+	store store
+}
+
+func NewService(store store) *Service {
+	return &Service{store: store}
+}
+
+// Create validates a new {{.Package}} and saves it.
+func (s *Service) Create(ctx context.Context, item {{.Type}}) ({{.Type}}, error) {
+	item.ID = 0 // the database assigns the id
+{{- range .Fields}}{{if .Required}}
+	item.{{.GoName}} = strings.TrimSpace(item.{{.GoName}})
+	if item.{{.GoName}} == "" {
+		return {{$.Type}}{}, fmt.Errorf("%w: {{.Name}} is required", ErrInvalid)
+	}
+{{- end}}{{end}}
+	// TODO: business rules for creating {{.Article}} {{.Package}}.
+	return s.store.Create(ctx, item)
+}
+
+func (s *Service) List(ctx context.Context) ([]{{.Type}}, error) {
+	// TODO: business rules for listing {{.Plural}}, such as filtering.
+	return s.store.List(ctx)
+}
+
+func (s *Service) Get(ctx context.Context, id int64) ({{.Type}}, error) {
+	// TODO: business rules for reading {{.Article}} {{.Package}}, such as access checks.
+	return s.store.Get(ctx, id)
+}

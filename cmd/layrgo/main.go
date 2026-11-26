@@ -25,9 +25,12 @@ of framework, database, and ORM.`,
 		return nil
 	})
 
-	root.AddCommand(cli.InitCmd, cli.VersionCmd)
+	root.AddCommand(cli.InitCmd, cli.AddCmd, cli.VersionCmd)
 
 	if err := root.Execute(); err != nil {
+		if code, ok := cli.ExitCode(err); ok {
+			os.Exit(code)
+		}
 		fmt.Println(err)
 		os.Exit(1)
 	}

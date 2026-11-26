@@ -26,6 +26,7 @@ func main() {
 
 	api := r.Group("/api/v1")
 	message.SetupRoutes(api, messageHandler)
+	// layrgo:routes  (add feature inserts SetupRoutes calls above this line)
 
 	log.Println("🚀 Gin server is running on http://localhost:3000")
 	if err := r.Run(":3000"); err != nil {

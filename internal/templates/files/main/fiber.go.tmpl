@@ -26,6 +26,7 @@ func main() {
 
 	api := app.Group("/api/v1")
 	message.SetupRoutes(api, messageHandler)
+	// layrgo:routes  (add feature inserts SetupRoutes calls above this line)
 
 	log.Println("🚀 Fiber server is running on http://localhost:3000")
 	if err := app.Listen(":3000"); err != nil {
