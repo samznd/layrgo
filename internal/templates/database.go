@@ -18,9 +18,16 @@ var dbSpecs = map[string]dbSpec{
 	"postgres": {
 		driverImport: `_ "github.com/lib/pq"`,
 		driverName:   `"postgres"`,
-		dsnBlock: `dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))`,
+		// A URL, not "key=value" pairs: url.UserPassword escapes the password,
+		// so an empty one (or one with spaces or quotes) can't shift the other
+		// settings. lib/pq, pgx (GORM) and XORM all accept it.
+		dsnBlock: `dsn := (&url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD")),
+		Host:     net.JoinHostPort(os.Getenv("DB_HOST"), os.Getenv("DB_PORT")),
+		Path:     "/" + os.Getenv("DB_NAME"),
+		RawQuery: "sslmode=disable",
+	}).String()`,
 		gormImport:    `"gorm.io/driver/postgres"`,
 		gormDialector: `postgres.Open(dsn)`,
 	},

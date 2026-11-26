@@ -3,6 +3,17 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
+## Unreleased
+
+### Fixed
+- **Generated projects could not connect to Postgres with an empty
+  `DB_PASSWORD`**, as is common for a local Postgres. `config/database.go` built
+  a `key=value` connection string, so the driver read the next setting
+  (`dbname=…`) as the password, and XORM rejected the string outright. It now
+  builds a `postgres://` URL with `url.UserPassword`, which also escapes
+  passwords containing spaces, quotes, `@` or `/`. MySQL and SQLite are
+  unchanged.
+
 ## v1.5.0 — 2026-11-26
 
 ### Added

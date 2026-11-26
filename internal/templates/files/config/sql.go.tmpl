@@ -4,6 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+{{- if eq .Database "postgres"}}
+	"net"
+	"net/url"
+{{- end}}
 	"os"
 	"time"
 
