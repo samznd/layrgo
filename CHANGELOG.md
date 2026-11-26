@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
-## Unreleased (v1.5.0)
+## v1.5.0 — 2026-11-26
 
 ### Added
 - **`layrgo add feature`** adds a complete feature to an existing project in one
