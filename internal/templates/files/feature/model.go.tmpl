@@ -1,0 +1,30 @@
+package {{.Package}}
+
+import (
+	"errors"
+{{- if .ModelImportsTime}}
+	"time"
+{{- end}}
+)
+
+var (
+	// ErrNotFound is returned by the store when no {{.Package}} matches.
+	ErrNotFound = errors.New("{{.Package}} not found")
+	// ErrInvalid wraps validation failures from the service.
+	ErrInvalid = errors.New("invalid {{.Package}}")
+)
+
+// {{.Type}} is a row in the {{.Table}} table.
+type {{.Type}} struct {
+	ID int64 `{{.IDTag}}`
+{{- range .Fields}}
+	{{.GoName}} {{.GoType}} `{{.Tag}}`
+{{- end}}
+}
+{{- if or (eq .ORM "gorm") (eq .ORM "xorm")}}
+
+// TableName pins the table name, so the {{if eq .ORM "gorm"}}GORM{{else}}XORM{{end}} naming rules can't change it.
+func ({{.Type}}) TableName() string {
+	return "{{.Table}}"
+}
+{{- end}}

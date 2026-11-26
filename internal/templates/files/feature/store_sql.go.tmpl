@@ -1,0 +1,87 @@
+package {{.Package}}
+{{if eq .ORM "ent"}}
+// Ent schema code is project-specific, so this store uses database/sql. To move
+// it to Ent, see "Adding a feature" in AGENTS.md; keep the method signatures.
+{{end}}
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+)
+
+// Store is the data access for {{.Plural}}, the only code that runs SQL for them.
+type Store struct {
+	db *sql.DB
+}
+
+func NewStore(db *sql.DB) *Store {
+	return &Store{db: db}
+}
+
+// Migrate creates the {{.Table}} table if it does not exist. cmd/main.go calls it
+// at startup.
+func (s *Store) Migrate(ctx context.Context) error {
+	if _, err := s.db.ExecContext(ctx, `{{.CreateTableSQL}}`); err != nil {
+		return fmt.Errorf("create {{.Table}} table: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) Create(ctx context.Context, item {{.Type}}) ({{.Type}}, error) {
+{{- if eq .Database "postgres"}}
+	err := s.db.QueryRowContext(ctx,
+		"{{.InsertSQL}} RETURNING id",
+		{{.InsertArgs}}).Scan(&item.ID)
+	if err != nil {
+		return {{.Type}}{}, fmt.Errorf("create {{.Package}}: %w", err)
+	}
+{{- else}}
+	res, err := s.db.ExecContext(ctx,
+		"{{.InsertSQL}}",
+		{{.InsertArgs}})
+	if err != nil {
+		return {{.Type}}{}, fmt.Errorf("create {{.Package}}: %w", err)
+	}
+	if item.ID, err = res.LastInsertId(); err != nil {
+		return {{.Type}}{}, fmt.Errorf("create {{.Package}}: %w", err)
+	}
+{{- end}}
+	return item, nil
+}
+
+// List returns every {{.Package}}, oldest first, in one query.
+func (s *Store) List(ctx context.Context) ([]{{.Type}}, error) {
+	rows, err := s.db.QueryContext(ctx, "SELECT {{.SelectCols}} FROM {{.Table}} ORDER BY id")
+	if err != nil {
+		return nil, fmt.Errorf("list {{.Plural}}: %w", err)
+	}
+	defer rows.Close()
+
+	items := []{{.Type}}{}
+	for rows.Next() {
+		var item {{.Type}}
+		if err := rows.Scan({{.ScanArgs}}); err != nil {
+			return nil, fmt.Errorf("list {{.Plural}}: %w", err)
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list {{.Plural}}: %w", err)
+	}
+	return items, nil
+}
+
+func (s *Store) Get(ctx context.Context, id int64) ({{.Type}}, error) {
+	var item {{.Type}}
+	err := s.db.QueryRowContext(ctx,
+		"SELECT {{.SelectCols}} FROM {{.Table}} WHERE id = {{.IDPlaceholder}}", id).
+		Scan({{.ScanArgs}})
+	if errors.Is(err, sql.ErrNoRows) {
+		return {{.Type}}{}, ErrNotFound
+	}
+	if err != nil {
+		return {{.Type}}{}, fmt.Errorf("get {{.Package}} %d: %w", id, err)
+	}
+	return item, nil
+}

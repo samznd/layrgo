@@ -41,7 +41,7 @@ var (
 )
 
 // render executes an embedded template. Missing keys are errors.
-func render(name string, data Data, extra ...string) (string, error) {
+func render(name string, data any, extra ...string) (string, error) {
 	patterns := append([]string{"files/" + name}, extra...)
 
 	tmpl := template.New(baseName(name)).Option("missingkey=error")

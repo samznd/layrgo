@@ -28,6 +28,7 @@ func main() {
 {{template "di" .}}
 
 	message.SetupRoutes(r, messageHandler)
+	// layrgo:routes  (add feature inserts SetupRoutes calls above this line)
 
 	log.Println("🚀 Chi server is running on http://localhost:3000")
 	if err := http.ListenAndServe(":3000", r); err != nil {

@@ -5,4 +5,6 @@
 		log.Fatalf("migrate messages: %v", err)
 	}
 	messageService := message.NewService(messageStore)
-	messageHandler := message.NewHandler(messageService){{end}}
+	messageHandler := message.NewHandler(messageService)
+
+	// layrgo:wire  (add feature inserts store, Migrate, service and handler above this line){{end}}

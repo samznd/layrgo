@@ -3,6 +3,27 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
+## Unreleased (v1.5.0)
+
+### Added
+- **`layrgo add feature`** adds a complete feature to an existing project in one
+  command: `layrgo add feature order --fields "customer:string,total:int,paid:bool"`
+  writes `internal/order/` (model, store with `Migrate`, service with validation
+  and `TODO`s, a service test, handler and routes) for the project's framework,
+  database and ORM, wires it into `cmd/main.go`, and runs gofmt, go build, go vet
+  and the feature's tests. It serves `POST`, `GET` (list) and `GET /{id}`. Flags:
+  `--plural`, `--dry-run`, `--force`, `--json` and `--yes`; it never prompts when
+  stdin is not a terminal. Exit codes 0–4 tell agents what happened.
+- **`.layrgo.json`** records the project's stack. `layrgo init` writes it; for
+  older projects, `add feature` detects the stack from `go.mod` and writes it.
+
+### Changed
+- `cmd/main.go` has `// layrgo:wire` and `// layrgo:routes` markers, where
+  `add feature` inserts new features. Older projects without them are wired
+  after their last feature.
+- `AGENTS.md` tells agents to use `layrgo add feature`, and keeps the bookmark
+  walkthrough as the reference for what it generates.
+
 ## v1.4.0 — 2026-11-18
 
 ### Added

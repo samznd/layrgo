@@ -25,6 +25,7 @@ func main() {
 {{template "di" .}}
 
 	message.SetupRoutes(mux, messageHandler)
+	// layrgo:routes  (add feature inserts SetupRoutes calls above this line)
 
 	// http.ListenAndServe sets no timeouts, so build the server by hand.
 	srv := &http.Server{

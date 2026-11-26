@@ -57,7 +57,7 @@ you no longer need it, delete the package and its wiring and route in
    itself**, listing only the methods it calls (see `messageService` in
    `internal/message/handler.go` and `store` in `internal/message/service.go`).
    Constructors take that interface, so tests can pass fakes.
-3.**Pass the request's `context.Context` all the way down to the database
+3. **Pass the request's `context.Context` all the way down to the database
    call.**
 4. **Only `cmd/main.go` reads `config.DB`.** Everything else gets its
    dependencies through a constructor.
@@ -78,7 +78,24 @@ you no longer need it, delete the package and its wiring and route in
 
 ## Adding a feature
 
-The example below adds a `bookmark` feature with `POST /api/v1/bookmarks` and
+Run `layrgo add feature <name> --fields "…" --yes`, then fill in the `TODO`s.
+Don't copy `internal/message` by hand when the command is available.
+
+```bash
+layrgo add feature order --fields "customer:string,note:text?,total:int,paid:bool" --yes
+```
+
+It writes `internal/order/` (model, store, service, service test, handler and
+routes) for this project's stack, wires it into `cmd/main.go` above the
+`// layrgo:wire` and `// layrgo:routes` markers, and runs gofmt, build, vet and
+the feature's tests. Field types are `string`, `text`, `int`, `float`, `bool` and
+`time`; a trailing `?` makes a field optional. Every feature gets an `id`. Add
+`--dry-run` to preview, `--json` for machine-readable output. Exit codes: 0 done,
+1 invalid input, 2 the feature exists, 3 `cmd/main.go` needs the printed lines
+pasted, 4 a check failed. Keep the markers in `cmd/main.go`.
+
+The walkthrough below is the reference for what the command generates, and for
+changes it does not cover. It adds a `bookmark` feature with `POST /api/v1/bookmarks` and
 `GET /api/v1/bookmarks/{id}`. Rename it for your feature.
 
 ### 1. Create `internal/bookmark/`
@@ -641,8 +658,8 @@ newer, and `ServeMux` panics at startup if two patterns conflict.
 
 ### 2. Wire it in `cmd/main.go`
 
-Add the `"{{.Module}}/internal/bookmark"` import, then add the feature next to
-`message`. Prefix each variable with the feature name:
+Add the `"{{.Module}}/internal/bookmark"` import, then add the feature above the
+`// layrgo:wire` marker. Prefix each variable with the feature name:
 
 ```go
 	bookmarkStore := bookmark.NewStore(config.DB)
@@ -653,7 +670,7 @@ Add the `"{{.Module}}/internal/bookmark"` import, then add the feature next to
 	bookmarkHandler := bookmark.NewHandler(bookmarkService)
 ```
 
-and register its routes after `message.SetupRoutes(...)`:
+and register its routes above the `// layrgo:routes` marker:
 
 ```go
 	bookmark.SetupRoutes({{.RouterVar}}, bookmarkHandler)

@@ -165,15 +165,18 @@ your-project/
 ├── .gitignore
 ├── .env.example
 ├── .env                     # gitignored; local overrides
+├── .layrgo.json             # The stack, read by `layrgo add feature`; commit it
 ├── AGENTS.md                # Instructions for AI coding agents
 ├── CLAUDE.md                # Claude Code: imports AGENTS.md
 ├── GEMINI.md                # Gemini CLI: imports AGENTS.md
 └── .github/copilot-instructions.md  # GitHub Copilot: points to AGENTS.md
 ```
 
-To add a feature, copy `internal/message` to `internal/<name>`, then wire it in
-`cmd/main.go`: build its store, call its `Migrate`, and register its routes.
-`AGENTS.md` walks through a complete example for your stack.
+To add a feature, run `layrgo add feature` (below). It writes `internal/<name>`
+for your stack, wires it into `cmd/main.go` above the `// layrgo:wire` and
+`// layrgo:routes` markers, and checks that the project still builds and passes
+its tests. `AGENTS.md` walks through the same code by hand, for changes the
+command does not cover.
 
 Interfaces are declared by the code that uses them, and constructors return
 concrete types ("accept interfaces, return structs"). The service declares the
@@ -186,6 +189,7 @@ hand the service a fake store without a database, as the generated
 ```bash
 layrgo init                  # interactive wizard
 layrgo init myapp --flags    # non-interactive scaffold
+layrgo add feature <name> --fields "..."   # add a feature to the project in .
 layrgo version               # print version
 layrgo --help
 ```
@@ -200,14 +204,48 @@ layrgo --help
 | `--no-orm`    | Use `database/sql` instead     |
 | `--force`     | Scaffold into a non-empty directory |
 
+### `add feature`
+
+Run from the project root (the directory with `go.mod`):
+
+```bash
+layrgo add feature order --fields "customer:string,note:text?,total:int,paid:bool"
+```
+
+This creates `internal/order/` with `model.go`, `store.go`, `service.go`,
+`service_test.go`, `handler.go` and `routes.go`, serving `POST /api/v1/orders`,
+`GET /api/v1/orders` and `GET /api/v1/orders/{id}` from an `orders` table.
+
+| Flag | Description |
+| --- | --- |
+| `--fields` | `name:type` list. Types: `string`, `text`, `int`, `float`, `bool`, `time`. A trailing `?` makes a field optional (nullable). Every feature gets an `id`. |
+| `--plural` | Override the derived plural, e.g. `--plural people` for `person` |
+| `--dry-run` | Print the files and the `cmd/main.go` diff; write nothing |
+| `--force` | Replace an existing `internal/<name>` package |
+| `--json` | Print the result as JSON (for agents and scripts) |
+| `--yes` | Never prompt; fail on anything missing instead |
+
+Without `--fields`, it asks for them when run at a terminal. It never prompts
+when stdin is not a terminal, so agents and CI can't hang on it.
+
+Exit codes: `0` created, wired and checked · `1` invalid input or not a Layrgo
+project, nothing written · `2` the feature exists (without `--force`) · `3`
+files created but `cmd/main.go` could not be wired (the lines to paste are
+printed) · `4` created and wired, but gofmt, build, vet or test failed.
+
+Projects created before v1.5.0 work too: the stack is read from `go.mod` and
+saved to `.layrgo.json`, and the feature is wired after the last existing one.
+
 ## Layrgo repository layout
 
 ```
 layrgo/
 ├── cmd/layrgo/          # CLI entry point
 ├── internal/
-│   ├── cli/             # Commands (init, version)
+│   ├── cli/             # Commands (init, add feature, version)
 │   ├── scaffold/        # Scaffolding engine
+│   ├── feature/         # add feature: names, fields, wiring, checks
+│   ├── project/         # An existing project's module and stack (.layrgo.json)
 │   ├── templates/       # Template rendering
 │   │   └── files/       # The templates, AGENTS.md's included
 │   └── fileutil/
@@ -251,7 +289,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes.
 - [x] Non-interactive `init` flags
 - [x] AGENTS.md for AI coding agents (Claude Code, Cursor, Codex, Copilot, Gemini)
 - [x] Sample feature with a test and startup table setup, for agents to copy
-- [ ] `layrgo add feature` for agents and humans
+- [x] `layrgo add feature` for agents and humans
 - [ ] Sample store test, so agents test their SQL too
 - [ ] MCP server, so agents can call Layrgo as a tool
 - [ ] GraphQL scaffold

@@ -1,0 +1,252 @@
+package {{.Package}}
+
+import (
+	"context"
+{{- if or (eq .Framework "chi") (eq .Framework "stdlib")}}
+	"encoding/json"
+{{- end}}
+	"errors"
+	"net/http"
+	"strconv"
+{{- if eq .Framework "gin"}}
+
+	"github.com/gin-gonic/gin"
+{{- else if eq .Framework "echo"}}
+
+	"github.com/labstack/echo/v4"
+{{- else if eq .Framework "fiber"}}
+
+	"github.com/gofiber/fiber/v3"
+{{- else if eq .Framework "chi"}}
+
+	"github.com/go-chi/chi/v5"
+{{- else if eq .Framework "iris"}}
+
+	"github.com/kataras/iris/v12"
+{{- end}}
+)
+
+// {{.Package}}Service is the part of the service this handler uses.
+type {{.Package}}Service interface {
+	Create(ctx context.Context, item {{.Type}}) ({{.Type}}, error)
+	List(ctx context.Context) ([]{{.Type}}, error)
+	Get(ctx context.Context, id int64) ({{.Type}}, error)
+}
+
+type Handler struct {
+	service {{.Package}}Service
+}
+
+func NewHandler(s {{.Package}}Service) *Handler {
+	return &Handler{service: s}
+}
+{{if eq .Framework "gin"}}
+func (h *Handler) Create(c *gin.Context) {
+	var in {{.Type}}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON body"})
+		return
+	}
+	item, err := h.service.Create(c.Request.Context(), in)
+	if err != nil {
+		status, msg := errorStatus(err)
+		c.JSON(status, gin.H{"error": msg})
+		return
+	}
+	c.JSON(http.StatusCreated, item)
+}
+
+func (h *Handler) List(c *gin.Context) {
+	items, err := h.service.List(c.Request.Context())
+	if err != nil {
+		status, msg := errorStatus(err)
+		c.JSON(status, gin.H{"error": msg})
+		return
+	}
+	c.JSON(http.StatusOK, items)
+}
+
+func (h *Handler) Get(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	item, err := h.service.Get(c.Request.Context(), id)
+	if err != nil {
+		status, msg := errorStatus(err)
+		c.JSON(status, gin.H{"error": msg})
+		return
+	}
+	c.JSON(http.StatusOK, item)
+}
+{{else if eq .Framework "echo"}}
+func (h *Handler) Create(c echo.Context) error {
+	var in {{.Type}}
+	if err := c.Bind(&in); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid JSON body"})
+	}
+	item, err := h.service.Create(c.Request().Context(), in)
+	if err != nil {
+		status, msg := errorStatus(err)
+		return c.JSON(status, map[string]string{"error": msg})
+	}
+	return c.JSON(http.StatusCreated, item)
+}
+
+func (h *Handler) List(c echo.Context) error {
+	items, err := h.service.List(c.Request().Context())
+	if err != nil {
+		status, msg := errorStatus(err)
+		return c.JSON(status, map[string]string{"error": msg})
+	}
+	return c.JSON(http.StatusOK, items)
+}
+
+func (h *Handler) Get(c echo.Context) error {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid id"})
+	}
+	item, err := h.service.Get(c.Request().Context(), id)
+	if err != nil {
+		status, msg := errorStatus(err)
+		return c.JSON(status, map[string]string{"error": msg})
+	}
+	return c.JSON(http.StatusOK, item)
+}
+{{else if eq .Framework "fiber"}}
+func (h *Handler) Create(c fiber.Ctx) error {
+	var in {{.Type}}
+	if err := c.Bind().Body(&in); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid JSON body"})
+	}
+	item, err := h.service.Create(c.Context(), in)
+	if err != nil {
+		status, msg := errorStatus(err)
+		return c.Status(status).JSON(fiber.Map{"error": msg})
+	}
+	return c.Status(http.StatusCreated).JSON(item)
+}
+
+func (h *Handler) List(c fiber.Ctx) error {
+	items, err := h.service.List(c.Context())
+	if err != nil {
+		status, msg := errorStatus(err)
+		return c.Status(status).JSON(fiber.Map{"error": msg})
+	}
+	return c.JSON(items)
+}
+
+func (h *Handler) Get(c fiber.Ctx) error {
+	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid id"})
+	}
+	item, err := h.service.Get(c.Context(), id)
+	if err != nil {
+		status, msg := errorStatus(err)
+		return c.Status(status).JSON(fiber.Map{"error": msg})
+	}
+	return c.JSON(item)
+}
+{{else if eq .Framework "iris"}}
+func (h *Handler) Create(ctx iris.Context) {
+	var in {{.Type}}
+	if err := ctx.ReadJSON(&in); err != nil {
+		ctx.StopWithJSON(http.StatusBadRequest, iris.Map{"error": "invalid JSON body"})
+		return
+	}
+	item, err := h.service.Create(ctx.Request().Context(), in)
+	if err != nil {
+		status, msg := errorStatus(err)
+		ctx.StopWithJSON(status, iris.Map{"error": msg})
+		return
+	}
+	ctx.StatusCode(http.StatusCreated)
+	_ = ctx.JSON(item)
+}
+
+func (h *Handler) List(ctx iris.Context) {
+	items, err := h.service.List(ctx.Request().Context())
+	if err != nil {
+		status, msg := errorStatus(err)
+		ctx.StopWithJSON(status, iris.Map{"error": msg})
+		return
+	}
+	_ = ctx.JSON(items)
+}
+
+func (h *Handler) Get(ctx iris.Context) {
+	id, err := strconv.ParseInt(ctx.Params().Get("id"), 10, 64)
+	if err != nil {
+		ctx.StopWithJSON(http.StatusBadRequest, iris.Map{"error": "invalid id"})
+		return
+	}
+	item, err := h.service.Get(ctx.Request().Context(), id)
+	if err != nil {
+		status, msg := errorStatus(err)
+		ctx.StopWithJSON(status, iris.Map{"error": msg})
+		return
+	}
+	_ = ctx.JSON(item)
+}
+{{else}}
+func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
+	var in {{.Type}}
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON body"})
+		return
+	}
+	item, err := h.service.Create(r.Context(), in)
+	if err != nil {
+		status, msg := errorStatus(err)
+		writeJSON(w, status, map[string]string{"error": msg})
+		return
+	}
+	writeJSON(w, http.StatusCreated, item)
+}
+
+func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
+	items, err := h.service.List(r.Context())
+	if err != nil {
+		status, msg := errorStatus(err)
+		writeJSON(w, status, map[string]string{"error": msg})
+		return
+	}
+	writeJSON(w, http.StatusOK, items)
+}
+
+func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt({{if eq .Framework "chi"}}chi.URLParam(r, "id"){{else}}r.PathValue("id"){{end}}, 10, 64)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid id"})
+		return
+	}
+	item, err := h.service.Get(r.Context(), id)
+	if err != nil {
+		status, msg := errorStatus(err)
+		writeJSON(w, status, map[string]string{"error": msg})
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
+}
+{{end}}
+// errorStatus maps a service error to an HTTP status and a message that is
+// safe to show clients.
+func errorStatus(err error) (int, string) {
+	switch {
+	case errors.Is(err, ErrNotFound):
+		return http.StatusNotFound, "not found"
+	case errors.Is(err, ErrInvalid):
+		return http.StatusBadRequest, err.Error()
+	default:
+		return http.StatusInternalServerError, "internal server error"
+	}
+}

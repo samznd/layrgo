@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/samznd/layrgo/internal/fileutil"
+	"github.com/samznd/layrgo/internal/project"
 	"github.com/samznd/layrgo/internal/templates"
 )
 
@@ -72,6 +73,7 @@ func WriteFiles(cfg Config) error {
 		{".gitignore", gitignoreFile()},
 		{"Dockerfile", dockerfile()},
 		{"docker-compose.yml", dockerComposeFile(cfg.Database)},
+		{project.StackFile, project.NewStack(cfg.Framework, cfg.Database, cfg.ORM).Marshal()},
 		{"AGENTS.md", agentsContent},
 		{"CLAUDE.md", templates.ClaudeFile()},
 		{"GEMINI.md", templates.GeminiFile()},
