@@ -215,7 +215,8 @@ command generates and for changes it does not cover.
 - Golden tests of the generated files for each framework × ORM.
 - For every framework × ORM on SQLite: generate a project, add a feature, then
   build, vet, test and call its endpoints live, as the v1.4.0 checks did. Also
-  live on Postgres for each ORM, including a feature named `order`.
+  live on Postgres for each ORM, including a feature named `order`. (Done for
+  all three databases; see [Verification](#verification).)
 - Wiring: a v1.5.0 project (markers), a v1.4.0 project (no markers), and a
   `main.go` changed by hand so neither is found (expect exit 3 and no edit).
 - An agent experiment like v1.4.0's, with and without the command, comparing
@@ -230,6 +231,22 @@ The open questions were settled as proposed:
    to commit it when it creates one for an older project.
 3. Required `string` and `text` fields get blank checks; other rules are `TODO`s.
 
-Not covered yet: a live run on Postgres and MySQL (SQLite was run live for every
-framework × ORM), golden files per stack (tests check each stack's key lines
+## Verification
+
+Run live for every framework × ORM (24 combinations) on SQLite, Postgres 14 and
+MySQL 26.10, with a feature named `order` and one field of each type, required
+and optional. Each run scaffolds a project, adds the feature, builds and starts
+it, and calls every endpoint: an empty list returns `[]`, create returns 201, a
+blank required field returns 400, list and get return 200, a missing id 404, a
+non-numeric id 400, and the sample `/message` endpoint still returns 200.
+Stored values, floats and times included, read back unchanged. The tables match
+the types above, except where an ORM picks its own: GORM stores `float` as
+`numeric` on Postgres and `time` as `datetime(3)` on MySQL, and XORM stores
+`time` without a time zone on Postgres.
+
+The Postgres run found that generated projects could not connect with an empty
+`DB_PASSWORD`. The fix, which builds the connection string as an escaped URL,
+ships after v1.5.0; see the changelog.
+
+Not covered yet: golden files per stack (tests check each stack's key lines
 instead), and the agent experiment.
